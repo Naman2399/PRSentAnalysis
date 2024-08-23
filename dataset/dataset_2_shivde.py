@@ -1,0 +1,48 @@
+import pandas as pd
+
+from dataset.dataset_utils import get_data_loaders
+
+
+def read_dataset_n_modify_column_name(file_name) :
+
+    df = pd.read_csv(file_name)
+    # Column names
+    column_names = df.columns
+    print(f"Column names : {column_names}")
+    # If column names are different let them convert to
+    # "Rating" and "Review"
+    print("Dataframe information")
+    df = df.rename(columns={'overall': 'Rating', 'reviewText': 'Review'})
+    print(df.info())
+    return df
+
+
+def load_dataset():
+    # file_name = "/mnt/hdd/karmpatel/naman/demo/DLNLP_Ass1_Data/Aug24-Assignmen1-Dataset1.csv"
+    # df = read_dataset_n_modify_column_name(file_name)
+    #
+    # # Preprocessing
+    # file_path = preprocessing(
+    #     df=df,
+    #     dir_path="../data",
+    #     file_name="dataset_shivde_postprocess.csv"
+    # )
+
+    file_path = f"../data/dataset_shivde_postprocess.csv"
+
+    train_loader, val_loader, test_loader, num_classes, rating_counts, vectorizer = get_data_loaders(file_path,
+                                                                                      output_seq_len=100,
+                                                                                      batch_size=64)
+    return train_loader, val_loader, test_loader, num_classes, rating_counts, vectorizer
+
+
+if __name__ == "__main__":
+    load_dataset()
+
+
+
+
+
+
+
+
