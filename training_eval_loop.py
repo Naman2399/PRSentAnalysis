@@ -7,7 +7,7 @@ import torch.nn
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from tqdm import tqdm
 
-from models.first_model import SentimentAnalysis
+from models.model_1 import LSTM
 from torch.utils.tensorboard import SummaryWriter
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, balanced_accuracy_score, roc_auc_score
 
@@ -105,10 +105,10 @@ if __name__ == "__main__" :
     # Add arguments
     parser.add_argument('--output_seq_len', type=int, default=100, help='Length of the output sequence')
     parser.add_argument('--batch_size', type=int, default=64, help='Batch size for training')
-    parser.add_argument('--learning_rate', type=float, default=0.001, help='Learning rate for the optimizer')
+    parser.add_argument('--learning_rate', type=float, default=0.0001, help='Learning rate for the optimizer')
     parser.add_argument('--epochs', type=int, default=50,help='Number of training epochs')
     parser.add_argument('--embed_size', type=int, default=300, help='Size of the embedding vector')
-    parser.add_argument('--dataset_type', type=str, default='dataset_1',
+    parser.add_argument('--dataset_type', type=str, default='dataset_3',
                         help='We have 3 options dataset_1, dataset_2, dataset_3 '
                              'dataset_2 is Original dataset ----> shivde')
     parser.add_argument("--ckpt_dir", type=str, default="/data/home/karmpatel/karm_8T/naman/demo/DLNLP_Ass1_Data/model_ckpts", help="can edit any save directory")
@@ -129,15 +129,15 @@ if __name__ == "__main__" :
     # Loading Dataset
     if args.dataset_type == "dataset_1" :
         from dataset.dataset_1 import load_dataset
-        train_loader, val_loader, test_loader, num_classes, rating_counts, vectorizer = load_dataset(
+        train_loader, val_loader, test_loader, num_classes, rating_counts, vectorizer, word2idx, idx2word = load_dataset(
             output_seq_len=output_seq_len, batch_size=batch_size)
     elif args.dataset_type == "dataset_2" :
         from dataset.dataset_2_shivde import load_dataset
-        train_loader, val_loader, test_loader, num_classes, rating_counts, vectorizer = load_dataset(
+        train_loader, val_loader, test_loader, num_classes, rating_counts, vectorizer, word2idx, idx2word = load_dataset(
             output_seq_len=output_seq_len, batch_size=batch_size)
     elif args.dataset_type == "dataset_3" :
         from dataset.dataset_3_hugging_face import load_dataset
-        train_loader, val_loader, test_loader, num_classes, rating_counts, vectorizer = load_dataset(
+        train_loader, val_loader, test_loader, num_classes, rating_counts, vectorizer, word2idx, idx2word = load_dataset(
             output_seq_len=output_seq_len, batch_size=batch_size)
     else :
         print("Enter valid dataset")
@@ -147,10 +147,15 @@ if __name__ == "__main__" :
     num_vocab = vectorizer.vocabulary_size()
 
     # Defining Model
-    model = SentimentAnalysis(total_word=num_vocab,
-                              embed_size=embed_size,
-                              hidden_size=300,
-                              num_class= num_classes)
+    model = LSTM(total_word=num_vocab,
+                 embed_size=embed_size,
+                 hidden_size=300,
+                 num_class= num_classes,
+                 vectorizer= vectorizer,
+                 word2idx= word2idx,
+                 idx2word= idx2word,
+                 device= device,
+                 )
     model.to(device)
     # Generating Class weights for model
     counts = np.array(rating_counts)
@@ -173,7 +178,7 @@ if __name__ == "__main__" :
 
     # Stopping Criteria
     # Parameters for early stopping
-    patience = 10  # Number of epochs to wait for improvement
+    patience = 50  # Number of epochs to wait for improvement
     min_delta = 0.001  # Minimum change to qualify as an improvement
     best_val_loss = float('inf')
     epochs_no_improve = 0

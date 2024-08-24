@@ -473,3 +473,27 @@ def get_test_val_data_loaders(file_path, num_classes, vectorizer, batch_size = 6
         break  # Break after the first batch to avoid processing the entire dataset
 
     return data_loader
+
+
+def get_mapping(vectorizer) :
+
+    '''
+
+    :param vectorizer: Object of tf.keras.layers.Vectorization will contain all the vectors
+    :return: Will return 2 dict,  word2idx and idx2word
+    '''
+    # Now create Mapping word --> idx
+    # Reverse Mapping    idx ---> word
+    word2idx = {}
+    idx2word = {}
+
+    vocab_list = vectorizer.get_vocabulary()
+    for word in vocab_list:
+        if word == "":
+            continue
+        idx = vectorizer(word)
+        idx = int(idx[0])
+        word2idx[word] = idx
+        idx2word[idx] = word
+
+    return word2idx, idx2word

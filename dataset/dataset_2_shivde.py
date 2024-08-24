@@ -1,6 +1,6 @@
 import pandas as pd
 
-from dataset.dataset_utils import get_data_loaders
+from dataset.dataset_utils import get_data_loaders, get_mapping
 
 
 def read_dataset_n_modify_column_name(file_name) :
@@ -32,7 +32,10 @@ def load_dataset(output_seq_len, batch_size):
 
     train_loader, val_loader, test_loader, num_classes, rating_counts, vectorizer = get_data_loaders(file_path,
                                                                                       batch_size= batch_size)
-    return train_loader, val_loader, test_loader, num_classes, rating_counts, vectorizer
+
+    word2idx, idx2word = get_mapping(vectorizer)
+
+    return train_loader, val_loader, test_loader, num_classes, rating_counts, vectorizer, word2idx, idx2word
 
 
 if __name__ == "__main__":

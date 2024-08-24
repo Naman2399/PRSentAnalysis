@@ -1,7 +1,7 @@
 import pandas as pd
 
 from dataset.dataset_utils import preprocessing, get_data_loaders, get_train_data_loaders, get_test_val_data_loaders, \
-    get_data_loaders_with_different_file_paths
+    get_data_loaders_with_different_file_paths, get_mapping
 
 
 # def read_dataset_n_modify_column_name(data_dir) :
@@ -97,8 +97,10 @@ def load_dataset(output_seq_len, batch_size) :
     val_loader = get_test_val_data_loaders(file_path['val'], num_classes, vectorizer, batch_size= batch_size)
     test_loader = get_test_val_data_loaders(file_path['test'], num_classes, vectorizer, batch_size= batch_size)
 
+    word2idx, idx2word = get_mapping(vectorizer)
 
-    return train_loader, val_loader, test_loader, num_classes, rating_counts, vectorizer
+
+    return train_loader, val_loader, test_loader, num_classes, rating_counts, vectorizer, word2idx, idx2word
 
 if __name__ == "__main__" :
 
