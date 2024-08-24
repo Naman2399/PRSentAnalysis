@@ -13,7 +13,7 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 
 
 
-def train_loop(epoch, model, train_loader, loss_func, optimizer, scheduler, writer, split_type, device) :
+def train_eval_loop(epoch, model, train_loader, loss_func, optimizer, scheduler, writer, split_type, device) :
 
     if split_type == "train" :
         model.train()
@@ -103,12 +103,12 @@ if __name__ == "__main__" :
     parser = argparse.ArgumentParser(description='Script for setting up training parameters.')
 
     # Add arguments
-    parser.add_argument('--output_seq_len', type=int, default=50, help='Length of the output sequence')
+    parser.add_argument('--output_seq_len', type=int, default=100, help='Length of the output sequence')
     parser.add_argument('--batch_size', type=int, default=64, help='Batch size for training')
     parser.add_argument('--learning_rate', type=float, default=0.001, help='Learning rate for the optimizer')
     parser.add_argument('--epochs', type=int, default=50,help='Number of training epochs')
     parser.add_argument('--embed_size', type=int, default=300, help='Size of the embedding vector')
-    parser.add_argument('--dataset_type', type=str, default='dataset_1',
+    parser.add_argument('--dataset_type', type=str, default='dataset_2',
                         help='We have 3 options dataset_1, dataset_2, dataset_3 '
                              'dataset_2 is Original dataset ----> shivde')
     parser.add_argument("--ckpt_dir", type=str, default="/data/home/karmpatel/karm_8T/naman/demo/DLNLP_Ass1_Data/model_ckpts", help="can edit any save directory")
@@ -149,7 +149,7 @@ if __name__ == "__main__" :
     # Defining Model
     model = SentimentAnalysis(total_word=num_vocab,
                               embed_size=embed_size,
-                              hidden_size=164,
+                              hidden_size=300,
                               num_class= num_classes)
     model.to(device)
     # Generating Class weights for model
@@ -161,11 +161,12 @@ if __name__ == "__main__" :
 
     # Defining Loss, Optimizer, Scheduler
     loss_func = torch.nn.CrossEntropyLoss(weight= class_weights)
-    optimizer = torch.optim.Adam(params=model.parameters(), lr=0.0001)
+    optimizer = torch.optim.Adam(params=model.parameters(), lr= learning_rate)
     scheduler = CosineAnnealingLR(optimizer, T_max= epochs)
 
     # Creating exp name
     exp_name = f"model_1_{dataset_type}_bs_{args.batch_size}_lr_{learning_rate}_embed_{embed_size}"
+    print(f"Exp name : {exp_name}")
 
     # Initialize TensorBoard writer
     writer = SummaryWriter(f'runs/{exp_name}')
@@ -182,14 +183,14 @@ if __name__ == "__main__" :
 
     for epoch in range(epochs) :
 
-        train_accuracy, train_auc, train_balance_accuracy, train_loss = train_loop(epoch, model, train_loader, loss_func, optimizer,
-                                                                       scheduler, writer, "train", device)
+        train_accuracy, train_auc, train_balance_accuracy, train_loss = train_eval_loop(epoch, model, train_loader, loss_func, optimizer,
+                                                                                        scheduler, writer, "train", device)
 
-        val_accuracy, val_auc, val_balance_accuracy, val_loss = train_loop(epoch, model, val_loader, loss_func, optimizer,
-                                                                       scheduler, writer, "val", device)
+        val_accuracy, val_auc, val_balance_accuracy, val_loss = train_eval_loop(epoch, model, val_loader, loss_func, optimizer,
+                                                                                scheduler, writer, "val", device)
 
-        test_accuracy, test_auc, test_balance_accuracy, test_loss = train_loop(epoch, model, test_loader, loss_func, optimizer,
-                                                                       scheduler, writer, "test", device)
+        test_accuracy, test_auc, test_balance_accuracy, test_loss = train_eval_loop(epoch, model, test_loader, loss_func, optimizer,
+                                                                                    scheduler, writer, "test", device)
 
         # Model Saving
         # Check if this is the best model so far, and save it
@@ -216,7 +217,7 @@ if __name__ == "__main__" :
             print(f"Best model saved with accuracy: {best_val_accuracy:.2f}%")
 
         # Check if validation loss improved
-        if best_val_loss - val_loss > min_delta:
+        if best_val_loss > val_loss :
             best_val_loss = val_loss
             epochs_no_improve = 0
         else:

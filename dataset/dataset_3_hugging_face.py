@@ -26,7 +26,7 @@ def read_dataset_n_modify_column_name(data_dir) :
     print(df.info())
     return df
 
-def load_dataset() :
+def load_dataset(output_seq_len, batch_size) :
     # data_dir = "/mnt/hdd/karmpatel/naman/demo/DLNLP_Ass1_Data/sst2"
     # df = read_dataset_n_modify_column_name(data_dir)
     #
@@ -37,7 +37,7 @@ def load_dataset() :
     #     file_name="dataset_sst2_postprocess.csv"
     # )
 
-    file_path = f"../data/dataset_sst2_postprocess.csv"
+    file_path = f"/raid/home/namanmalpani/final_yr/DLNLP_Assignment_1/data/dataset_sst2_postprocess.csv"
 
     train_loader, val_loader, test_loader, num_classes, rating_counts, vectorizer = get_data_loaders(file_path,
                                                                                       output_seq_len=100,
