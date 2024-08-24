@@ -1,5 +1,6 @@
 import os
 import string
+import typing
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -60,7 +61,8 @@ def clean_text(text) :
         lemmatizer = WordNetLemmatizer()
         sentence.append(lemmatizer.lemmatize(word, 'v'))
 
-    return ' '.join(sentence)
+    sentence = ' '.join(sentence)
+    return str(sentence)
 
 
 
@@ -112,8 +114,18 @@ def split_train_test_validation(df : pd.DataFrame, valid_test_ratio =0.2 , valid
     return X_train, X_val, X_test, y_train, y_val, y_test
 
 
-def get_data_loaders(file_path, valid_test_ration =0.2, valid_ratio_from_test =0.5,
-                     output_seq_len = 80, batch_size = 64) :
+def get_data_loaders(file_path : str, valid_test_ration =0.2, valid_ratio_from_test =0.5,
+                     output_seq_len = None, batch_size = 64) :
+
+    '''
+
+    :param file_path: Datatype : str Path contains all the data which is split into 3 parts train, val, test
+    :param valid_test_ration:
+    :param valid_ratio_from_test:
+    :param output_seq_len:
+    :param batch_size:
+    :return:
+    '''
 
     # Using Post processed csv file
     print(f"Reading data from : {file_path} ")
@@ -124,6 +136,10 @@ def get_data_loaders(file_path, valid_test_ration =0.2, valid_ratio_from_test =0
     print(f"Number of classes : {num_classes}")
     rating_counts = df['Rating'].value_counts()
     rating_counts_sorted = rating_counts.sort_index()
+
+    # Creating max sequence length ( Mean + 2 * std)
+    if output_seq_len is None :
+        output_seq_len = int(df['Length'].mean() + 2 * df['Length'].std())
 
     X_train, X_val, X_test, y_train, y_val, y_test = split_train_test_validation(df)
 
@@ -216,3 +232,245 @@ def get_data_loaders(file_path, valid_test_ration =0.2, valid_ratio_from_test =0
         break
 
     return train_loader, val_loader, test_loader, num_classes, rating_counts_sorted.tolist(), vectorizer
+
+def get_data_loaders_with_different_file_paths(file_path : typing.Dict, output_seq_len=None, batch_size=64):
+    '''
+
+    :param file_path: Datatype dict : Key can be train, val, test and Values : file path
+    :param output_seq_len:
+    :param batch_size:
+    :return:
+    '''
+
+    # Using Post processed csv file
+    print(f"Reading data from : {file_path['train']} ")
+    df_train = pd.read_csv(file_path['train'])
+
+    print(f"Reading data from : {file_path['val']} ")
+    df_val = pd.read_csv(file_path['val'])
+
+    print(f"Reading data from : {file_path['test']} ")
+    df_test = pd.read_csv(file_path['test'])
+
+    # Get details
+    unique_ratings = df_train['Rating'].unique()
+    num_classes = len(unique_ratings)
+    print(f"Number of classes : {num_classes}")
+    rating_counts = df_train['Rating'].value_counts()
+    rating_counts_sorted = rating_counts.sort_index()
+
+    # Creating max sequence length ( Mean + 2 * std)
+    if output_seq_len is None :
+        output_seq_len = int(df_train['Length'].mean() + 2 * df_train['Length'].std())
+
+    # Now get the train, validation, test
+    X_train, y_train = df_train['Review'], df_train['Rating']
+    X_val, y_val = df_val['Review'], df_val['Rating']
+    X_test, y_test = df_test['Review'], df_test['Rating']
+
+    # Check the size sets
+    print(f"Training set: {len(X_train)} samples")
+    print(f"Validation set: {len(X_val)} samples")
+    print(f"Test set: {len(X_test)} samples")
+
+    # Building Vocabulary, convert text -> number
+    vectorizer = TextVectorization(
+        max_tokens=None,
+        output_mode="int",
+        output_sequence_length=output_seq_len
+    )
+    vectorizer.adapt(X_train)
+
+    X_train = vectorizer(X_train)
+    X_val = vectorizer(X_val)
+    X_test = vectorizer(X_test)
+
+    # Convert them to tensor
+    X_train_tf = tf.convert_to_tensor(X_train)
+    X_val_tf = tf.convert_to_tensor(X_val)
+    X_test_tf = tf.convert_to_tensor(X_test)
+    y_train_tf = tf.convert_to_tensor(y_train)
+    y_val_tf = tf.convert_to_tensor(y_val)
+    y_test_tf = tf.convert_to_tensor(y_test)
+
+    # Convert TensorFlow tensors to NumPy arrays
+    X_train_np = X_train_tf.numpy()
+    X_val_np = X_val_tf.numpy()
+    X_test_np = X_test_tf.numpy()
+    y_train_np = y_train_tf.numpy()
+    y_val_np = y_val_tf.numpy()
+    y_test_np = y_test_tf.numpy()
+
+    # Convert NumPy arrays to PyTorch tensors
+    X_train = torch.tensor(X_train_np)
+    X_val = torch.tensor(X_val_np)
+    X_test = torch.tensor(X_test_np)
+    y_train = torch.tensor(y_train_np)
+    y_val = torch.tensor(y_val_np)
+    y_test = torch.tensor(y_test_np)
+
+    # Converting y_test to categorical data
+    y_train = torch.nn.functional.one_hot(y_train, num_classes=num_classes)
+    y_val = torch.nn.functional.one_hot(y_val, num_classes=num_classes)
+    y_test = torch.nn.functional.one_hot(y_test, num_classes=num_classes)
+
+    y_train = y_train.float()
+    y_val = y_val.float()
+    y_test = y_test.float()
+
+    # Print shape
+    print(f"X train : {X_train.shape}, {type(X_train)}")
+    print(f"X val : {X_val.shape}, {type(X_val)}")
+    print(f"X test : {X_test.shape}, {type(X_test)}")
+    print(f"Y train : {y_train.shape}, {type(y_train)}")
+    print(f"y val : {y_val.shape}, {type(y_val)}")
+    print(f"y test : {y_test.shape}, {type(y_test)}")
+
+    # Preparing Dataset
+    train_dataset = CustomDataset(X_train, y_train)
+    val_dataset = CustomDataset(X_val, y_val)
+    test_dataset = CustomDataset(X_test, y_test)
+
+    # Creating Dataloaders
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
+
+    # Get the shape of the first batch from train_loader
+    for batch in train_loader:
+        X_batch, y_batch = batch
+        print(f"Shape of X_batch: {X_batch.shape}")
+        print(f"Shape of y_batch: {y_batch.shape}")
+        break  # Break after the first batch to avoid processing the entire dataset
+
+    # Repeat for val_loader and test_loader
+    for batch in val_loader:
+        X_batch, y_batch = batch
+        print(f"Shape of X_batch: {X_batch.shape}")
+        print(f"Shape of y_batch: {y_batch.shape}")
+        break
+
+    for batch in test_loader:
+        X_batch, y_batch = batch
+        print(f"Shape of X_batch: {X_batch.shape}")
+        print(f"Shape of y_batch: {y_batch.shape}")
+        break
+
+    return train_loader, val_loader, test_loader, num_classes, rating_counts_sorted.tolist(), vectorizer
+
+def get_train_data_loaders(file_path, batch_size = 64, output_seq_len = None) :
+
+    # Using Post processed csv file
+    print(f"Reading data from : {file_path} ")
+    df_train = pd.read_csv(file_path)
+
+    # Get details
+    unique_ratings = df_train['Rating'].unique()
+    num_classes = len(unique_ratings)
+    print(f"Number of classes : {num_classes}")
+    rating_counts = df_train['Rating'].value_counts()
+    rating_counts_sorted = rating_counts.sort_index()
+
+    # Creating max sequence length ( Mean + 2 * std)
+    if output_seq_len is None:
+        output_seq_len = int(df_train['Length'].mean() + 2 * df_train['Length'].std())
+
+    # Now get the train, validation, test
+    X_train, y_train = df_train['Review'], df_train['Rating']
+
+    # Check the size sets
+    print(f"Training set: {len(X_train)} samples")
+
+    # Building Vocabulary, convert text -> number
+    vectorizer = TextVectorization(
+        max_tokens=None,
+        output_mode="int",
+        output_sequence_length=output_seq_len
+    )
+
+    vectorizer.adapt(X_train)
+
+    X_train = vectorizer(X_train)
+    # Convert them to tensor
+    X_train_tf = tf.convert_to_tensor(X_train)
+    y_train_tf = tf.convert_to_tensor(y_train)
+
+    # Convert TensorFlow tensors to NumPy arrays
+    X_train_np = X_train_tf.numpy()
+    y_train_np = y_train_tf.numpy()
+
+    # Convert NumPy arrays to PyTorch tensors
+    X_train = torch.tensor(X_train_np)
+    y_train = torch.tensor(y_train_np)
+
+    # Converting y_test to categorical data
+    y_train = torch.nn.functional.one_hot(y_train, num_classes=num_classes)
+    y_train = y_train.float()
+
+    # Print shape
+    print(f"X train : {X_train.shape}, {type(X_train)}")
+    print(f"Y train : {y_train.shape}, {type(y_train)}")
+
+    # Preparing Dataset
+    train_dataset = CustomDataset(X_train, y_train)
+
+    # Creating Dataloaders
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+
+    # Get the shape of the first batch from train_loader
+    for batch in train_loader:
+        X_batch, y_batch = batch
+        print(f"Shape of X_batch: {X_batch.shape}")
+        print(f"Shape of y_batch: {y_batch.shape}")
+        break  # Break after the first batch to avoid processing the entire dataset
+
+    return train_loader, num_classes, rating_counts_sorted.tolist(), vectorizer
+
+
+def get_test_val_data_loaders(file_path, num_classes, vectorizer, batch_size = 64) :
+
+    # Using Post processed csv file
+    print(f"Reading data from : {file_path} ")
+    df = pd.read_csv(file_path)
+
+    X, y = df['Review'], df['Rating']
+
+    # Check the size sets
+    print(f"Dataset: {len(X)} samples")
+
+    # convert text -> number
+    X = vectorizer(X)
+    X_tf = tf.convert_to_tensor(X)
+    y_tf = tf.convert_to_tensor(y)
+
+    # Convert Tensorflow tensors to NumPy arrays
+    X_np = X_tf.numpy()
+    y_np = y_tf.numpy()
+
+    # Convert NumPy arrays to PyTorch tensors
+    X = torch.tensor(X_np)
+    y = torch.tensor(y_np)
+
+    # Converting y_test to categorical data
+    X = torch.nn.functional.one_hot(X, num_classes=num_classes)
+    y = torch.nn.functional.one_hot(y, num_classes=num_classes)
+    y = y.float()
+
+    # Print shape
+    print(f"X : {X.shape}, {type(X)}")
+    print(f"Y : {y.shape}, {type(y)}")
+
+    # Preparing Dataset
+    dataset = CustomDataset(X, y)
+
+    # Creating Dataloaders
+    data_loader = DataLoader(dataset, batch_size= batch_size, shuffle=True)
+
+    # Get the shape of the first batch from train_loader
+    for batch in data_loader:
+        X_batch, y_batch = batch
+        print(f"Shape of X_batch: {X_batch.shape}")
+        print(f"Shape of y_batch: {y_batch.shape}")
+        break  # Break after the first batch to avoid processing the entire dataset
+
+    return data_loader

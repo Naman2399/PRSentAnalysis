@@ -31,8 +31,7 @@ def load_dataset(output_seq_len, batch_size):
     file_path = f"/raid/home/namanmalpani/final_yr/DLNLP_Assignment_1/data/dataset_shivde_postprocess.csv"
 
     train_loader, val_loader, test_loader, num_classes, rating_counts, vectorizer = get_data_loaders(file_path,
-                                                                                      output_seq_len=100,
-                                                                                      batch_size=64)
+                                                                                      batch_size= batch_size)
     return train_loader, val_loader, test_loader, num_classes, rating_counts, vectorizer
 
 
