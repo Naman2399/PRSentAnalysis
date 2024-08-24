@@ -4,6 +4,30 @@ from dataset.dataset_utils import preprocessing, get_data_loaders, get_train_dat
     get_data_loaders_with_different_file_paths
 
 
+# def read_dataset_n_modify_column_name(data_dir) :
+#
+#     splits = {'train': 'train.parquet',
+#               'validation': 'validation.parquet',
+#               'test': 'test.parquet'}
+#     df_train = pd.read_parquet(f"{data_dir}/" + splits["train"])
+#     df_val = pd.read_parquet(f"{data_dir}/" + splits["validation"])
+#     print(f"Train DataFrame Shape: {df_train.shape}")
+#     print(f"Validation DataFrame Shape: {df_val.shape}")
+#
+#     df = pd.concat([df_train, df_val], ignore_index=True)
+#     print(f"DataFrame Shape: {df.shape}")
+#
+#     # Column names
+#     column_names = df.columns
+#     print(f"Column names : {column_names}")
+#     # If column names are different let them convert to
+#     # "Rating" and "Review"
+#     print("Dataframe information")
+#     df = df.rename(columns={'label': 'Rating', 'sentence': 'Review'})
+#     print(df.info())
+#     return df
+
+
 def read_dataset_n_modify_column_name(data_dir) :
 
     splits = {'train': 'train.parquet',

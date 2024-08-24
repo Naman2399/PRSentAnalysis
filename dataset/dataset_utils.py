@@ -376,7 +376,7 @@ def get_train_data_loaders(file_path, batch_size = 64, output_seq_len = None) :
         output_seq_len = int(df_train['Length'].mean() + 2 * df_train['Length'].std())
 
     # Now get the train, validation, test
-    X_train, y_train = df_train['Review'], df_train['Rating']
+    X_train, y_train = df_train['Review'].astype(str), df_train['Rating']
 
     # Check the size sets
     print(f"Training set: {len(X_train)} samples")
@@ -433,7 +433,7 @@ def get_test_val_data_loaders(file_path, num_classes, vectorizer, batch_size = 6
     print(f"Reading data from : {file_path} ")
     df = pd.read_csv(file_path)
 
-    X, y = df['Review'], df['Rating']
+    X, y = df['Review'].astype(str), df['Rating']
 
     # Check the size sets
     print(f"Dataset: {len(X)} samples")
@@ -452,7 +452,6 @@ def get_test_val_data_loaders(file_path, num_classes, vectorizer, batch_size = 6
     y = torch.tensor(y_np)
 
     # Converting y_test to categorical data
-    X = torch.nn.functional.one_hot(X, num_classes=num_classes)
     y = torch.nn.functional.one_hot(y, num_classes=num_classes)
     y = y.float()
 

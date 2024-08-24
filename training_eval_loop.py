@@ -108,7 +108,7 @@ if __name__ == "__main__" :
     parser.add_argument('--learning_rate', type=float, default=0.001, help='Learning rate for the optimizer')
     parser.add_argument('--epochs', type=int, default=50,help='Number of training epochs')
     parser.add_argument('--embed_size', type=int, default=300, help='Size of the embedding vector')
-    parser.add_argument('--dataset_type', type=str, default='dataset_3',
+    parser.add_argument('--dataset_type', type=str, default='dataset_1',
                         help='We have 3 options dataset_1, dataset_2, dataset_3 '
                              'dataset_2 is Original dataset ----> shivde')
     parser.add_argument("--ckpt_dir", type=str, default="/data/home/karmpatel/karm_8T/naman/demo/DLNLP_Ass1_Data/model_ckpts", help="can edit any save directory")
