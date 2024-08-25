@@ -8,7 +8,7 @@ from gensim.models import KeyedVectors
 class LSTM(torch.nn.Module):
 
     def __init__(self, total_word, num_class, vectorizer, word2idx, idx2word,
-                 embed_size = 300, hidden_size = 300,  padding_index=0, num_layers= 5, drouput_out = 0.2,
+                 embed_size = 300, hidden_size = 300,  padding_index=0, num_layers= 2, drouput_out = 0.2,
                  bool_initialize_weights = True, pretrained_wv_type = "word2vec"):
         '''
 

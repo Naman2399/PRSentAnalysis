@@ -329,6 +329,14 @@ def get_data_loaders_with_different_file_paths(file_path : typing.Dict, output_s
     y_val = torch.tensor(y_val_np)
     y_test = torch.tensor(y_test_np)
 
+    # Now creating weighted sampler (because needed y_train, y_val, y_test in label representation form)
+    class_weights = 1. / torch.tensor(rating_counts_sorted, dtype=torch.float)
+    class_weights /= class_weights.sum()
+    train_sample_weights = class_weights[y_train]
+    val_sample_weights = class_weights[y_val]
+    test_sample_weights = class_weights[y_test]
+    print(class_weights)
+
     # Converting y_test to categorical data
     y_train = torch.nn.functional.one_hot(y_train, num_classes=num_classes)
     y_val = torch.nn.functional.one_hot(y_val, num_classes=num_classes)
@@ -346,21 +354,31 @@ def get_data_loaders_with_different_file_paths(file_path : typing.Dict, output_s
     print(f"y val : {y_val.shape}, {type(y_val)}")
     print(f"y test : {y_test.shape}, {type(y_test)}")
 
+    # Create a WeightedRandomSampler
+    train_sampler = WeightedRandomSampler(weights=train_sample_weights, num_samples=len(train_sample_weights),
+                                          replacement=True)
+    val_sampler = WeightedRandomSampler(weights=val_sample_weights, num_samples=len(val_sample_weights),
+                                        replacement=True)
+    test_sampler = WeightedRandomSampler(weights=test_sample_weights, num_samples=len(test_sample_weights),
+                                         replacement=True)
+
     # Preparing Dataset
     train_dataset = CustomDataset(X_train, y_train)
     val_dataset = CustomDataset(X_val, y_val)
     test_dataset = CustomDataset(X_test, y_test)
 
     # Creating Dataloaders
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, sampler= train_sampler)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, sampler= val_sampler)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, sampler= test_sampler)
 
     # Get the shape of the first batch from train_loader
     for batch in train_loader:
         X_batch, y_batch = batch
         print(f"Shape of X_batch: {X_batch.shape}")
         print(f"Shape of y_batch: {y_batch.shape}")
+        unique, counts = torch.unique(torch.argmax(y_batch, dim=1), return_counts=True)
+        print(f"Training Batch class distribution: {dict(zip(unique.numpy(), counts.numpy()))}")
         break  # Break after the first batch to avoid processing the entire dataset
 
     # Repeat for val_loader and test_loader
@@ -368,12 +386,16 @@ def get_data_loaders_with_different_file_paths(file_path : typing.Dict, output_s
         X_batch, y_batch = batch
         print(f"Shape of X_batch: {X_batch.shape}")
         print(f"Shape of y_batch: {y_batch.shape}")
+        unique, counts = torch.unique(torch.argmax(y_batch, dim=1), return_counts=True)
+        print(f"Validation Batch class distribution: {dict(zip(unique.numpy(), counts.numpy()))}")
         break
 
     for batch in test_loader:
         X_batch, y_batch = batch
         print(f"Shape of X_batch: {X_batch.shape}")
         print(f"Shape of y_batch: {y_batch.shape}")
+        unique, counts = torch.unique(torch.argmax(y_batch, dim=1), return_counts=True)
+        print(f"Test Batch class distribution: {dict(zip(unique.numpy(), counts.numpy()))}")
         break
 
     return train_loader, val_loader, test_loader, num_classes, rating_counts_sorted.tolist(), vectorizer
@@ -423,6 +445,12 @@ def get_train_data_loaders(file_path, batch_size = 64, output_seq_len = None) :
     X_train = torch.tensor(X_train_np)
     y_train = torch.tensor(y_train_np)
 
+    # Now creating weighted sampler (because needed y_train, y_val, y_test in label representation form)
+    class_weights = 1. / torch.tensor(rating_counts_sorted, dtype=torch.float)
+    class_weights /= class_weights.sum()
+    train_sample_weights = class_weights[y_train]
+    print(class_weights)
+
     # Converting y_test to categorical data
     y_train = torch.nn.functional.one_hot(y_train, num_classes=num_classes)
     y_train = y_train.float()
@@ -431,17 +459,23 @@ def get_train_data_loaders(file_path, batch_size = 64, output_seq_len = None) :
     print(f"X train : {X_train.shape}, {type(X_train)}")
     print(f"Y train : {y_train.shape}, {type(y_train)}")
 
+    # Create a WeightedRandomSampler
+    train_sampler = WeightedRandomSampler(weights=train_sample_weights, num_samples=len(train_sample_weights),
+                                          replacement=True)
+
     # Preparing Dataset
     train_dataset = CustomDataset(X_train, y_train)
 
     # Creating Dataloaders
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, sampler= train_sampler)
 
     # Get the shape of the first batch from train_loader
     for batch in train_loader:
         X_batch, y_batch = batch
         print(f"Shape of X_batch: {X_batch.shape}")
         print(f"Shape of y_batch: {y_batch.shape}")
+        unique, counts = torch.unique(torch.argmax(y_batch, dim=1), return_counts=True)
+        print(f"Training Batch class distribution: {dict(zip(unique.numpy(), counts.numpy()))}")
         break  # Break after the first batch to avoid processing the entire dataset
 
     return train_loader, num_classes, rating_counts_sorted.tolist(), vectorizer
@@ -452,6 +486,13 @@ def get_test_val_data_loaders(file_path, num_classes, vectorizer, batch_size = 6
     # Using Post processed csv file
     print(f"Reading data from : {file_path} ")
     df = pd.read_csv(file_path)
+
+    # Get details
+    unique_ratings = df['Rating'].unique()
+    num_classes = len(unique_ratings)
+    print(f"Number of classes : {num_classes}")
+    rating_counts = df['Rating'].value_counts()
+    rating_counts_sorted = rating_counts.sort_index()
 
     X, y = df['Review'].astype(str), df['Rating']
 
@@ -471,25 +512,37 @@ def get_test_val_data_loaders(file_path, num_classes, vectorizer, batch_size = 6
     X = torch.tensor(X_np)
     y = torch.tensor(y_np)
 
+    # Now creating weighted sampler (because needed y_train, y_val, y_test in label representation form)
+    class_weights = 1. / torch.tensor(rating_counts_sorted, dtype=torch.float)
+    class_weights /= class_weights.sum()
+    sample_weights = class_weights[y]
+    print(class_weights)
+
     # Converting y_test to categorical data
     y = torch.nn.functional.one_hot(y, num_classes=num_classes)
     y = y.float()
 
     # Print shape
     print(f"X : {X.shape}, {type(X)}")
-    print(f"Y : {y.shape}, {type(y)}")
+    print(f"y : {y.shape}, {type(y)}")
+
+    # Create a WeightedRandomSampler
+    sampler = WeightedRandomSampler(weights=sample_weights, num_samples=len(sample_weights),
+                                          replacement=True)
 
     # Preparing Dataset
     dataset = CustomDataset(X, y)
 
     # Creating Dataloaders
-    data_loader = DataLoader(dataset, batch_size= batch_size, shuffle=True)
+    data_loader = DataLoader(dataset, batch_size= batch_size, sampler= sampler)
 
     # Get the shape of the first batch from train_loader
     for batch in data_loader:
         X_batch, y_batch = batch
         print(f"Shape of X_batch: {X_batch.shape}")
         print(f"Shape of y_batch: {y_batch.shape}")
+        unique, counts = torch.unique(torch.argmax(y_batch, dim=1), return_counts=True)
+        print(f"Batch class distribution: {dict(zip(unique.numpy(), counts.numpy()))}")
         break  # Break after the first batch to avoid processing the entire dataset
 
     return data_loader
