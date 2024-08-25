@@ -15,15 +15,9 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 
 
 
-def train_eval_loop(epoch, model, train_loader, loss_func, optimizer, scheduler, writer, split_type, device) :
+def eval_loop(epoch, model, train_loader, loss_func, optimizer, scheduler, writer, split_type, device) :
 
-    if split_type == "train" :
-        model.train()
-    elif split_type == "val" or split_type == "test" :
-        model.eval()
-    else :
-        print("Enter a valid split type")
-        return
+    model.eval()
 
     pbar = tqdm(train_loader, desc=f"{split_type} : Epoch {epoch + 1}/{args.epochs}", unit="batch")
     running_loss = 0
@@ -84,7 +78,7 @@ def train_eval_loop(epoch, model, train_loader, loss_func, optimizer, scheduler,
         "Acc" : accuracy,
         "Bal Acc" : balance_accuracy,
         "AUC" : auc,
-        "F1": f1
+        "F1" : f1
     })
 
     # Adding details to tensorboard
@@ -96,7 +90,7 @@ def train_eval_loop(epoch, model, train_loader, loss_func, optimizer, scheduler,
     writer.add_scalar(f"{split_type}/f1", f1, epoch + 1)
     writer.add_scalar(f"{split_type}/auc", auc, epoch + 1)
 
-    return accuracy, auc, balance_accuracy, running_loss / curr_count, f1
+    return accuracy, auc, balance_accuracy, running_loss / curr_count
 
 
 
@@ -108,16 +102,15 @@ if __name__ == "__main__" :
     # Add arguments
     parser.add_argument('--output_seq_len', type=int, default=100, help='Length of the output sequence')
     parser.add_argument('--batch_size', type=int, default=32, help='Batch size for training')
-    parser.add_argument('--learning_rate', type=float, default=0.0001, help='Learning rate for the optimizer')
-    parser.add_argument('--epochs', type=int, default=100,help='Number of training epochs')
+    parser.add_argument('--learning_rate', type=float, default=0.001, help='Learning rate for the optimizer')
     parser.add_argument('--embed_size', type=int, default=300, help='Size of the embedding vector')
     parser.add_argument('--dataset_type', type=str, default='dataset_2',
                         help='We have 3 options dataset_1, dataset_2, dataset_3 '
                              'dataset_2 is Original dataset ----> shivde')
-    parser.add_argument("--ckpt_dir", type=str, default="/data/home/karmpatel/karm_8T/naman/demo/DLNLP_Ass1_Data/model_ckpts", help="can edit any save directory")
+    parser.add_argument("--ckpt_dir", type=str, default="/data/home/karmpatel/karm_8T/naman/demo/DLNLP_Ass1_Data/model_evals", help="can edit any save directory")
     parser.add_argument("--bool_initialize_weights", type=bool, default=False)
     parser.add_argument("--pretrained_wv_type", type=str, default="word2vec", help="Options : word2vec, glove")
-    parser.add_argument("--model_type", type=str, default="cnn", help="Options : lstm, rnn, cnn")
+    parser.add_argument("--model_type", type=str, default="lstm", help="Options : lstm, rnn, cnn")
     # Parse arguments
     args = parser.parse_args()
 
@@ -127,28 +120,24 @@ if __name__ == "__main__" :
     embed_size = args.embed_size
     dataset_type = args.dataset_type
     learning_rate = args.learning_rate
-    epochs = args.epochs
 
     # Adding cuda device
     device = "cuda:3"
 
-    # Loading Dataset
-    if args.dataset_type == "dataset_1" :
-        from dataset.dataset_1 import load_dataset
-        train_loader, val_loader, test_loader, num_classes, rating_counts, vectorizer, word2idx, idx2word = load_dataset(
-            output_seq_len=output_seq_len, batch_size=batch_size)
-    elif args.dataset_type == "dataset_2" :
-        from dataset.dataset_2_shivde import load_dataset
-        train_loader, val_loader, test_loader, num_classes, rating_counts, vectorizer, word2idx, idx2word = load_dataset(
-            output_seq_len=output_seq_len, batch_size=batch_size)
-    elif args.dataset_type == "dataset_3" :
-        from dataset.dataset_3_hugging_face import load_dataset
-        train_loader, val_loader, test_loader, num_classes, rating_counts, vectorizer, word2idx, idx2word = load_dataset(
-            output_seq_len=output_seq_len, batch_size=batch_size)
-    else :
-        print("Enter valid dataset")
-        exit()
+    # Loading model weights
+    model_weights_path = "/data/home/karmpatel/karm_8T/naman/demo/DLNLP_Ass1_Data/model_ckpts/model_lstm_dataset_2_bs_32_lr_0.001_embed_300/21.pt"
+    data_dict = torch.load(model_weights_path)
+    vectorizer = data_dict['vectorizer']
+    num_classes = data_dict['num_classes']
+    rating_counts = data_dict['rating_count']
+    word2idx = data_dict['word2idx']
+    idx2word = data_dict['idx2word']
 
+    # Loading Dataset
+    from dataset.dataset_2_shivde import load_test_val_dataset
+    test_loader = load_test_val_dataset(
+        file_path=None, num_classes=num_classes, vectorizer=vectorizer, batch_size=batch_size
+    )
 
     num_vocab = vectorizer.vocabulary_size()
 
@@ -165,7 +154,6 @@ if __name__ == "__main__" :
                      bool_initialize_weights=args.bool_initialize_weights,
                      pretrained_wv_type=args.pretrained_wv_type
                      )
-
     if args.model_type == "rnn" :
         # Defining Model
         model = RNN(total_word=num_vocab,
@@ -191,6 +179,9 @@ if __name__ == "__main__" :
                     pretrained_wv_type=args.pretrained_wv_type
                     )
 
+
+    model_weights = data_dict['model_weights']
+    model.load_state_dict(model_weights)
     model.to(device)
 
 
@@ -204,8 +195,6 @@ if __name__ == "__main__" :
     # Defining Loss, Optimizer, Scheduler
     # loss_func = torch.nn.CrossEntropyLoss(weight= class_weights)
     loss_func = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(params=model.parameters(), lr= learning_rate)
-    scheduler = CosineAnnealingLR(optimizer, T_max= epochs)
 
     # Creating exp name
     exp_name = f"model_{args.model_type}_{dataset_type}_bs_{args.batch_size}_lr_{learning_rate}_embed_{embed_size}"
@@ -214,68 +203,16 @@ if __name__ == "__main__" :
     # Initialize TensorBoard writer
     writer = SummaryWriter(f'runs/{exp_name}')
 
-    # Stopping Criteria
-    # Parameters for early stopping
-    patience = 50  # Number of epochs to wait for improvement
-    min_delta = 0.001  # Minimum change to qualify as an improvement
-    best_val_loss = float('inf')
-    epochs_no_improve = 0
+    test_accuracy, test_auc, test_balance_accuracy, test_loss = eval_loop(model, test_loader, loss_func,
+                                                                                writer, "test", device)
 
-    # Model saving
-    best_val_accuracy = 0.0
-    best_f1 = 0.0
+    final_dict = {
+        'test_accuracy': test_accuracy,
+        'test_bal_acc': test_balance_accuracy,
+        'test_auc': test_auc,
+    }
 
-    for epoch in range(epochs) :
+    os.makedirs(f"{args.ckpt_dir}/{exp_name}", exist_ok=True)
+    torch.save(final_dict, f"{args.ckpt_dir}/{exp_name}/final.pt")
+    print(f"model saved with accuracy: {test_accuracy:.2f}%")
 
-        train_accuracy, train_auc, train_balance_accuracy, train_loss, train_f1 = train_eval_loop(epoch, model, train_loader, loss_func, optimizer,
-                                                                                        scheduler, writer, "train", device)
-
-        val_accuracy, val_auc, val_balance_accuracy, val_loss, val_f1 = train_eval_loop(epoch, model, val_loader, loss_func, optimizer,
-                                                                                scheduler, writer, "val", device)
-
-        test_accuracy, test_auc, test_balance_accuracy, test_loss, test_f1 = train_eval_loop(epoch, model, test_loader, loss_func, optimizer,
-                                                                                    scheduler, writer, "test", device)
-
-        # Model Saving
-        # Check if this is the best model so far, and save it
-        if val_f1 > best_f1:
-            best_f1 = val_f1
-
-            final_dict = {
-                'train_accuracy' : train_accuracy,
-                'train_bal_acc' : train_balance_accuracy,
-                'train_auc' : train_auc,
-                'train_f1' : train_f1,
-                'val_accuracy' : val_accuracy,
-                'val_bal_acc' : val_balance_accuracy,
-                'val_auc' : val_auc,
-                'val_f1' : val_f1,
-                'test_accuracy' : test_accuracy,
-                'test_bal_acc' : test_balance_accuracy,
-                'test_auc' : test_auc,
-                'test_f1' : test_f1,
-                'model_weights' : model.state_dict(),
-                'optimizer' : optimizer.state_dict(),
-                'scheduler' : scheduler.state_dict(),
-                'num_classes' : num_classes,
-                'word2idx' : word2idx,
-                'idx2word' : idx2word,
-                'vectorizer' : vectorizer,
-                'rating_count' : rating_counts
-            }
-
-            os.makedirs(f"{args.ckpt_dir}/{exp_name}", exist_ok=True)
-            torch.save(final_dict, f"{args.ckpt_dir}/{exp_name}/{epoch}.pt")
-            print(f"Best model saved with accuracy: {best_val_accuracy:.2f}%")
-
-        # Check if validation loss improved
-        if best_val_loss > val_loss :
-            best_val_loss = val_loss
-            epochs_no_improve = 0
-        else:
-            epochs_no_improve += 1
-
-        # Early stopping check
-        if epochs_no_improve >= patience:
-            print("Early stopping triggered.")
-            break

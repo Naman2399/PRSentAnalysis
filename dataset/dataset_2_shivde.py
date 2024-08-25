@@ -1,6 +1,6 @@
 import pandas as pd
 
-from dataset.dataset_utils import get_data_loaders, get_mapping, preprocessing
+from dataset.dataset_utils import get_data_loaders, get_mapping, preprocessing, get_test_val_data_loaders
 
 
 def read_dataset_n_modify_column_name(file_name) :
@@ -37,6 +37,24 @@ def load_dataset(output_seq_len, batch_size):
 
     return train_loader, val_loader, test_loader, num_classes, rating_counts, vectorizer, word2idx, idx2word
 
+
+def load_test_val_dataset(file_path, num_classes, vectorizer, batch_size) :
+
+    file_name = "/mnt/hdd/karmpatel/naman/demo/DLNLP_Ass1_Data/Aug24-Assignmen1-Dataset1.csv"
+    df = read_dataset_n_modify_column_name(file_name)
+
+    # Preprocessing
+    file_path = preprocessing(
+        df=df,
+        dir_path="data",
+        file_name="dataset_shivde_postprocess.csv"
+    )
+
+    # file_path = f"/raid/home/namanmalpani/final_yr/DLNLP_Assignment_1/data/dataset_shivde_postprocess.csv"
+
+    data_loader = get_test_val_data_loaders(file_path, num_classes, vectorizer, batch_size=batch_size)
+
+    return data_loader
 
 if __name__ == "__main__":
     load_dataset()
