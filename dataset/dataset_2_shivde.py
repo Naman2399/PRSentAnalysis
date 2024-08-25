@@ -1,6 +1,6 @@
 import pandas as pd
 
-from dataset.dataset_utils import get_data_loaders, get_mapping
+from dataset.dataset_utils import get_data_loaders, get_mapping, preprocessing
 
 
 def read_dataset_n_modify_column_name(file_name) :
@@ -18,17 +18,17 @@ def read_dataset_n_modify_column_name(file_name) :
 
 
 def load_dataset(output_seq_len, batch_size):
-    # file_name = "/mnt/hdd/karmpatel/naman/demo/DLNLP_Ass1_Data/Aug24-Assignmen1-Dataset1.csv"
-    # df = read_dataset_n_modify_column_name(file_name)
-    #
-    # # Preprocessing
-    # file_path = preprocessing(
-    #     df=df,
-    #     dir_path="../data",
-    #     file_name="dataset_shivde_postprocess.csv"
-    # )
+    file_name = "/mnt/hdd/karmpatel/naman/demo/DLNLP_Ass1_Data/Aug24-Assignmen1-Dataset1.csv"
+    df = read_dataset_n_modify_column_name(file_name)
 
-    file_path = f"/raid/home/namanmalpani/final_yr/DLNLP_Assignment_1/data/dataset_shivde_postprocess.csv"
+    # Preprocessing
+    file_path = preprocessing(
+        df=df,
+        dir_path="data",
+        file_name="dataset_shivde_postprocess.csv"
+    )
+
+    # file_path = f"/raid/home/namanmalpani/final_yr/DLNLP_Assignment_1/data/dataset_shivde_postprocess.csv"
 
     train_loader, val_loader, test_loader, num_classes, rating_counts, vectorizer = get_data_loaders(file_path,
                                                                                       batch_size= batch_size)

@@ -7,7 +7,8 @@ import torch.nn
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from tqdm import tqdm
 
-from models.model_1 import LSTM
+from models.lstm import LSTM
+from models.rnn import RNN
 from torch.utils.tensorboard import SummaryWriter
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, balanced_accuracy_score, roc_auc_score
 
@@ -104,14 +105,17 @@ if __name__ == "__main__" :
 
     # Add arguments
     parser.add_argument('--output_seq_len', type=int, default=100, help='Length of the output sequence')
-    parser.add_argument('--batch_size', type=int, default=64, help='Batch size for training')
-    parser.add_argument('--learning_rate', type=float, default=0.0001, help='Learning rate for the optimizer')
-    parser.add_argument('--epochs', type=int, default=50,help='Number of training epochs')
+    parser.add_argument('--batch_size', type=int, default=128, help='Batch size for training')
+    parser.add_argument('--learning_rate', type=float, default=0.001, help='Learning rate for the optimizer')
+    parser.add_argument('--epochs', type=int, default=100,help='Number of training epochs')
     parser.add_argument('--embed_size', type=int, default=300, help='Size of the embedding vector')
-    parser.add_argument('--dataset_type', type=str, default='dataset_3',
+    parser.add_argument('--dataset_type', type=str, default='dataset_2',
                         help='We have 3 options dataset_1, dataset_2, dataset_3 '
                              'dataset_2 is Original dataset ----> shivde')
     parser.add_argument("--ckpt_dir", type=str, default="/data/home/karmpatel/karm_8T/naman/demo/DLNLP_Ass1_Data/model_ckpts", help="can edit any save directory")
+    parser.add_argument("--bool_initialize_weights", type=bool, default=True)
+    parser.add_argument("--pretrained_wv_type", type=str, default="word2vec", help="Options : word2vec, glove")
+    parser.add_argument("--model_type", type=str, default="lstm", help="Options : lstm, rnn")
     # Parse arguments
     args = parser.parse_args()
 
@@ -146,17 +150,36 @@ if __name__ == "__main__" :
 
     num_vocab = vectorizer.vocabulary_size()
 
-    # Defining Model
-    model = LSTM(total_word=num_vocab,
-                 embed_size=embed_size,
-                 hidden_size=300,
-                 num_class= num_classes,
-                 vectorizer= vectorizer,
-                 word2idx= word2idx,
-                 idx2word= idx2word,
-                 device= device,
-                 )
+    # Loading Model
+    if args.model_type == "lstm" :
+        # Defining Model
+        model = LSTM(total_word=num_vocab,
+                     embed_size=embed_size,
+                     hidden_size=300,
+                     num_class=num_classes,
+                     vectorizer=vectorizer,
+                     word2idx=word2idx,
+                     idx2word=idx2word,
+                     bool_initialize_weights=args.bool_initialize_weights,
+                     pretrained_wv_type=args.pretrained_wv_type
+                     )
+
+    if args.model_type == "rnn" :
+        # Defining Model
+        model = RNN(total_word=num_vocab,
+                     embed_size=embed_size,
+                     hidden_size=300,
+                     num_class=num_classes,
+                     vectorizer=vectorizer,
+                     word2idx=word2idx,
+                     idx2word=idx2word,
+                     bool_initialize_weights=args.bool_initialize_weights,
+                     pretrained_wv_type=args.pretrained_wv_type
+                     )
+
     model.to(device)
+
+
     # Generating Class weights for model
     counts = np.array(rating_counts)
     class_weights = sum(rating_counts) / (len(rating_counts) * counts)
@@ -170,7 +193,7 @@ if __name__ == "__main__" :
     scheduler = CosineAnnealingLR(optimizer, T_max= epochs)
 
     # Creating exp name
-    exp_name = f"model_1_{dataset_type}_bs_{args.batch_size}_lr_{learning_rate}_embed_{embed_size}"
+    exp_name = f"model_{args.model_type}_{dataset_type}_bs_{args.batch_size}_lr_{learning_rate}_embed_{embed_size}"
     print(f"Exp name : {exp_name}")
 
     # Initialize TensorBoard writer

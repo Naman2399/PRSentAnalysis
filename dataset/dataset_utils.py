@@ -11,7 +11,7 @@ from nltk.corpus import stopwords
 from nltk.stem.wordnet import WordNetLemmatizer
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.layers import TextVectorization
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, WeightedRandomSampler
 
 
 class CustomDataset(Dataset):
@@ -65,7 +65,6 @@ def clean_text(text) :
     return str(sentence)
 
 
-
 def text_preprocessing(df : pd.DataFrame) :
 
     # Preprocessing rating
@@ -103,7 +102,7 @@ def split_train_test_validation(df : pd.DataFrame, valid_test_ratio =0.2 , valid
 
     # Step 1: Split into training and temporary sets (temporary = test + validation)
     X_train, X_temp, y_train, y_temp = train_test_split(
-        df['Review'], df['Rating'], test_size= valid_test_ratio, stratify=df['Rating'], random_state=42
+        df['Review'], df['Rating'], test_size= valid_test_ratio, stratify=df['Rating'], random_state=42,
     )
 
     # Step 2: Split the temporary set into validation and test sets
@@ -184,6 +183,15 @@ def get_data_loaders(file_path : str, valid_test_ration =0.2, valid_ratio_from_t
     y_val = torch.tensor(y_val_np)
     y_test = torch.tensor(y_test_np)
 
+    # Now creating weighted sampler (because needed y_train, y_val, y_test in label representation form)
+    class_weights = 1. / torch.tensor(rating_counts_sorted, dtype=torch.float)
+    class_weights /= class_weights.sum()
+    train_sample_weights = class_weights[y_train]
+    val_sample_weights = class_weights[y_val]
+    test_sample_weights = class_weights[y_test]
+    print(class_weights)
+
+
     # Converting y_test to categorical data
     y_train = torch.nn.functional.one_hot(y_train, num_classes=num_classes)
     y_val = torch.nn.functional.one_hot(y_val, num_classes=num_classes)
@@ -201,21 +209,29 @@ def get_data_loaders(file_path : str, valid_test_ration =0.2, valid_ratio_from_t
     print(f"y val : {y_val.shape}, {type(y_val)}")
     print(f"y test : {y_test.shape}, {type(y_test)}")
 
+
+    # Create a WeightedRandomSampler
+    train_sampler = WeightedRandomSampler(weights= train_sample_weights, num_samples=len(train_sample_weights), replacement=True)
+    val_sampler = WeightedRandomSampler(weights= val_sample_weights, num_samples= len(val_sample_weights), replacement=True)
+    test_sampler = WeightedRandomSampler(weights= test_sample_weights, num_samples= len(test_sample_weights), replacement=True)
+
     # Preparing Dataset
     train_dataset = CustomDataset(X_train, y_train)
     val_dataset = CustomDataset(X_val, y_val)
     test_dataset = CustomDataset(X_test, y_test)
 
     # Creating Dataloaders
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, sampler= train_sampler)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, sampler= val_sampler)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, sampler= test_sampler)
 
     # Get the shape of the first batch from train_loader
     for batch in train_loader:
         X_batch, y_batch = batch
         print(f"Shape of X_batch: {X_batch.shape}")
         print(f"Shape of y_batch: {y_batch.shape}")
+        unique, counts = torch.unique(torch.argmax(y_batch, dim=1), return_counts=True)
+        print(f"Training Batch class distribution: {dict(zip(unique.numpy(), counts.numpy()))}")
         break  # Break after the first batch to avoid processing the entire dataset
 
     # Repeat for val_loader and test_loader
@@ -223,12 +239,16 @@ def get_data_loaders(file_path : str, valid_test_ration =0.2, valid_ratio_from_t
         X_batch, y_batch = batch
         print(f"Shape of X_batch: {X_batch.shape}")
         print(f"Shape of y_batch: {y_batch.shape}")
+        unique, counts = torch.unique(torch.argmax(y_batch, dim=1), return_counts=True)
+        print(f"Validation Batch class distribution: {dict(zip(unique.numpy(), counts.numpy()))}")
         break
 
     for batch in test_loader:
         X_batch, y_batch = batch
         print(f"Shape of X_batch: {X_batch.shape}")
         print(f"Shape of y_batch: {y_batch.shape}")
+        unique, counts = torch.unique(torch.argmax(y_batch, dim=1), return_counts=True)
+        print(f"Test Batch class distribution: {dict(zip(unique.numpy(), counts.numpy()))}")
         break
 
     return train_loader, val_loader, test_loader, num_classes, rating_counts_sorted.tolist(), vectorizer

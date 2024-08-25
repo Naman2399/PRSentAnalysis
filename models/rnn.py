@@ -5,11 +5,11 @@ import gensim.downloader as api
 from gensim.models import KeyedVectors
 
 
-class LSTM(torch.nn.Module):
+class RNN(torch.nn.Module):
 
-    def __init__(self, total_word, num_class, vectorizer, word2idx, idx2word, device,
+    def __init__(self, total_word, num_class, vectorizer, word2idx, idx2word,
                  embed_size = 300, hidden_size = 300,  padding_index=0, num_layers= 5, drouput_out = 0.2,
-                 initialize_weights = True, pretrained_wv_type = "glove"):
+                 bool_initialize_weights = True, pretrained_wv_type = "word2vec"):
         '''
 
         :param total_word:
@@ -35,8 +35,7 @@ class LSTM(torch.nn.Module):
         self.vectorizer = vectorizer
         self.word2idx = word2idx
         self.idx2word = idx2word
-        self.device = device
-        self.initialize_weights = initialize_weights
+        self.bool_initialize_weights = bool_initialize_weights
         self.pretrained_wv_type = pretrained_wv_type
 
         self.embed = torch.nn.Embedding(num_embeddings=total_word,
@@ -44,7 +43,7 @@ class LSTM(torch.nn.Module):
                                         padding_idx=padding_index)
 
 
-        self.lstm = torch.nn.LSTM(input_size=self.embed_size,
+        self.rnn = torch.nn.RNN(input_size=self.embed_size,
                                   hidden_size=self.hidden_size,
                                   num_layers= num_layers,
                                   bidirectional=True,
@@ -62,12 +61,15 @@ class LSTM(torch.nn.Module):
             nn.Linear(in_features=hidden_size, out_features=num_class)
         )
 
-        # Initialize embedding matrix
-        self.initialize_embedding_matrix()
+        if bool_initialize_weights :
+            # Initialize embedding matrix
+            self.initialize_weights()
+            self.initialize_embedding_matrix()
+
 
     def forward(self, X):
         out = self.embed(X)
-        out, _ = self.lstm(out)
+        out, _ = self.rnn(out)
         out = self.classifier(out[:, -1, :])
         return out
 
@@ -114,4 +116,10 @@ class LSTM(torch.nn.Module):
 
 
     def initialize_weights(self):
-        return
+
+        for layer in self.modules():
+            if isinstance(layer, nn.Linear):
+                # Initialize weights with Xavier uniform distribution
+                nn.init.xavier_uniform_(layer.weight)
+                # Initialize biases to zero
+                nn.init.zeros_(layer.bias)
