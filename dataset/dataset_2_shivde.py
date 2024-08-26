@@ -1,6 +1,6 @@
 import pandas as pd
 
-from dataset.dataset_utils import get_data_loaders, get_mapping, preprocessing, get_test_val_data_loaders
+from dataset.dataset_utils import get_data_loaders, get_mapping, preprocessing, get_eval_data_loaders
 
 
 def read_dataset_n_modify_column_name(file_name) :
@@ -52,7 +52,7 @@ def load_test_val_dataset(file_path, num_classes, vectorizer, batch_size) :
 
     # file_path = f"/raid/home/namanmalpani/final_yr/DLNLP_Assignment_1/data/dataset_shivde_postprocess.csv"
 
-    data_loader = get_test_val_data_loaders(file_path, num_classes, vectorizer, batch_size=batch_size)
+    data_loader = get_eval_data_loaders(file_path, num_classes, vectorizer, batch_size=batch_size)
 
     return data_loader
 

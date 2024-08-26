@@ -222,8 +222,8 @@ def get_data_loaders(file_path : str, valid_test_ration =0.2, valid_ratio_from_t
 
     # Creating Dataloaders
     train_loader = DataLoader(train_dataset, batch_size=batch_size, sampler= train_sampler)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, sampler= val_sampler)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, sampler= test_sampler)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, drop_last=False)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, drop_last=False)
 
     # Get the shape of the first batch from train_loader
     for batch in train_loader:
@@ -369,8 +369,8 @@ def get_data_loaders_with_different_file_paths(file_path : typing.Dict, output_s
 
     # Creating Dataloaders
     train_loader = DataLoader(train_dataset, batch_size=batch_size, sampler= train_sampler)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, sampler= val_sampler)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, sampler= test_sampler)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, drop_last=False)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, drop_last=False)
 
     # Get the shape of the first batch from train_loader
     for batch in train_loader:
@@ -480,19 +480,11 @@ def get_train_data_loaders(file_path, batch_size = 64, output_seq_len = None) :
 
     return train_loader, num_classes, rating_counts_sorted.tolist(), vectorizer
 
-
-def get_test_val_data_loaders(file_path, num_classes, vectorizer, batch_size = 64) :
+def get_eval_data_loaders(file_path, num_classes, vectorizer, batch_size = 64) :
 
     # Using Post processed csv file
     print(f"Reading data from : {file_path} ")
     df = pd.read_csv(file_path)
-
-    # Get details
-    unique_ratings = df['Rating'].unique()
-    num_classes = len(unique_ratings)
-    print(f"Number of classes : {num_classes}")
-    rating_counts = df['Rating'].value_counts()
-    rating_counts_sorted = rating_counts.sort_index()
 
     X, y = df['Review'].astype(str), df['Rating']
 
@@ -512,12 +504,6 @@ def get_test_val_data_loaders(file_path, num_classes, vectorizer, batch_size = 6
     X = torch.tensor(X_np)
     y = torch.tensor(y_np)
 
-    # Now creating weighted sampler (because needed y_train, y_val, y_test in label representation form)
-    class_weights = 1. / torch.tensor(rating_counts_sorted, dtype=torch.float)
-    class_weights /= class_weights.sum()
-    sample_weights = class_weights[y]
-    print(class_weights)
-
     # Converting y_test to categorical data
     y = torch.nn.functional.one_hot(y, num_classes=num_classes)
     y = y.float()
@@ -526,15 +512,11 @@ def get_test_val_data_loaders(file_path, num_classes, vectorizer, batch_size = 6
     print(f"X : {X.shape}, {type(X)}")
     print(f"y : {y.shape}, {type(y)}")
 
-    # Create a WeightedRandomSampler
-    sampler = WeightedRandomSampler(weights=sample_weights, num_samples=len(sample_weights),
-                                          replacement=True)
-
     # Preparing Dataset
     dataset = CustomDataset(X, y)
 
     # Creating Dataloaders
-    data_loader = DataLoader(dataset, batch_size= batch_size, sampler= sampler)
+    data_loader = DataLoader(dataset, batch_size= batch_size, shuffle=False, drop_last=False)
 
     # Get the shape of the first batch from train_loader
     for batch in data_loader:

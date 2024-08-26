@@ -1,31 +1,7 @@
 import pandas as pd
 
-from dataset.dataset_utils import preprocessing, get_data_loaders, get_train_data_loaders, get_test_val_data_loaders, \
-    get_data_loaders_with_different_file_paths, get_mapping
-
-
-# def read_dataset_n_modify_column_name(data_dir) :
-#
-#     splits = {'train': 'train.parquet',
-#               'validation': 'validation.parquet',
-#               'test': 'test.parquet'}
-#     df_train = pd.read_parquet(f"{data_dir}/" + splits["train"])
-#     df_val = pd.read_parquet(f"{data_dir}/" + splits["validation"])
-#     print(f"Train DataFrame Shape: {df_train.shape}")
-#     print(f"Validation DataFrame Shape: {df_val.shape}")
-#
-#     df = pd.concat([df_train, df_val], ignore_index=True)
-#     print(f"DataFrame Shape: {df.shape}")
-#
-#     # Column names
-#     column_names = df.columns
-#     print(f"Column names : {column_names}")
-#     # If column names are different let them convert to
-#     # "Rating" and "Review"
-#     print("Dataframe information")
-#     df = df.rename(columns={'label': 'Rating', 'sentence': 'Review'})
-#     print(df.info())
-#     return df
+from dataset.dataset_utils import preprocessing, get_train_data_loaders, get_eval_data_loaders, \
+    get_mapping
 
 
 def read_dataset_n_modify_column_name(data_dir) :
@@ -94,8 +70,8 @@ def load_dataset(output_seq_len, batch_size) :
     # }
 
     train_loader, num_classes, rating_counts, vectorizer = get_train_data_loaders(file_path['train'], batch_size=batch_size)
-    val_loader = get_test_val_data_loaders(file_path['val'], num_classes, vectorizer, batch_size= batch_size)
-    test_loader = get_test_val_data_loaders(file_path['test'], num_classes, vectorizer, batch_size= batch_size)
+    val_loader = get_eval_data_loaders(file_path['val'], num_classes, vectorizer, batch_size= batch_size)
+    test_loader = get_eval_data_loaders(file_path['test'], num_classes, vectorizer, batch_size= batch_size)
 
     word2idx, idx2word = get_mapping(vectorizer)
 

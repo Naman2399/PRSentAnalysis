@@ -4,15 +4,14 @@ import os
 
 import numpy as np
 import torch.nn
-from torch.optim.lr_scheduler import CosineAnnealingLR
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, balanced_accuracy_score, \
+    roc_auc_score
+from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
+from models.cnn import CNN
 from models.lstm import LSTM
 from models.rnn import RNN
-from models.cnn import CNN
-from torch.utils.tensorboard import SummaryWriter
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, balanced_accuracy_score, roc_auc_score
-
 
 
 def eval_loop(epoch, model, train_loader, loss_func, optimizer, scheduler, writer, split_type, device) :

@@ -7,6 +7,7 @@ import torch.nn
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from tqdm import tqdm
 
+from gpu_util import check_gpu_availability
 from models.lstm import LSTM
 from models.rnn import RNN
 from models.cnn import CNN
@@ -117,7 +118,7 @@ if __name__ == "__main__" :
     parser.add_argument("--ckpt_dir", type=str, default="/data/home/karmpatel/karm_8T/naman/demo/DLNLP_Ass1_Data/model_ckpts", help="can edit any save directory")
     parser.add_argument("--bool_initialize_weights", type=bool, default=False)
     parser.add_argument("--pretrained_wv_type", type=str, default="word2vec", help="Options : word2vec, glove")
-    parser.add_argument("--model_type", type=str, default="cnn", help="Options : lstm, rnn, cnn")
+    parser.add_argument("--model_type", type=str, default="lstm", help="Options : lstm, rnn, cnn")
     # Parse arguments
     args = parser.parse_args()
 
@@ -130,7 +131,10 @@ if __name__ == "__main__" :
     epochs = args.epochs
 
     # Adding cuda device
-    device = "cuda:3"
+    gpus = check_gpu_availability(2, 1, [2, 3, 4, 5, 6, 7])
+    print(f"occupied {gpus}")
+    os.environ['CUDA_VISIBLE_DEVICES'] = f'{",".join(map(str, gpus))}'
+    device = torch.device(f"cuda:{gpus[0]}")
 
     # Loading Dataset
     if args.dataset_type == "dataset_1" :
@@ -163,7 +167,8 @@ if __name__ == "__main__" :
                      word2idx=word2idx,
                      idx2word=idx2word,
                      bool_initialize_weights=args.bool_initialize_weights,
-                     pretrained_wv_type=args.pretrained_wv_type
+                     pretrained_wv_type=args.pretrained_wv_type,
+                     num_layers=1
                      )
 
     if args.model_type == "rnn" :
@@ -266,7 +271,7 @@ if __name__ == "__main__" :
 
             os.makedirs(f"{args.ckpt_dir}/{exp_name}", exist_ok=True)
             torch.save(final_dict, f"{args.ckpt_dir}/{exp_name}/{epoch}.pt")
-            print(f"Best model saved with accuracy: {best_val_accuracy:.2f}%")
+            print(f"Best model saved with f1 score: {best_val_accuracy:.2f}%")
 
         # Check if validation loss improved
         if best_val_loss > val_loss :
