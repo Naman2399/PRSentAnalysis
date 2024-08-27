@@ -25,7 +25,8 @@ def load_dataset(output_seq_len, batch_size):
     file_path = preprocessing(
         df=df,
         dir_path="data",
-        file_name="dataset_shivde_postprocess.csv"
+        file_name="dataset_shivde_postprocess.csv",
+        get2class = True
     )
 
     # file_path = f"/raid/home/namanmalpani/final_yr/DLNLP_Assignment_1/data/dataset_shivde_postprocess.csv"
@@ -33,7 +34,9 @@ def load_dataset(output_seq_len, batch_size):
     train_loader, val_loader, test_loader, num_classes, rating_counts, vectorizer = get_data_loaders(file_path,
                                                                                       batch_size= batch_size)
 
-    word2idx, idx2word = get_mapping(vectorizer)
+    # word2idx, idx2word = get_mapping(vectorizer)
+    word2idx = None
+    idx2word = None
 
     return train_loader, val_loader, test_loader, num_classes, rating_counts, vectorizer, word2idx, idx2word
 

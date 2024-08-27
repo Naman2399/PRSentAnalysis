@@ -118,7 +118,9 @@ if __name__ == "__main__" :
     parser.add_argument("--ckpt_dir", type=str, default="/data/home/karmpatel/karm_8T/naman/demo/DLNLP_Ass1_Data/model_ckpts", help="can edit any save directory")
     parser.add_argument("--bool_initialize_weights", type=bool, default=False)
     parser.add_argument("--pretrained_wv_type", type=str, default="word2vec", help="Options : word2vec, glove")
-    parser.add_argument("--model_type", type=str, default="lstm", help="Options : lstm, rnn, cnn")
+    parser.add_argument("--model_type", type=str, default="rnn", help="Options : lstm, rnn, cnn")
+    parser.add_argument("--weighted_loss", type=bool, default=False, help="Add True or False to use weighted loss")
+    parser.add_argument("--load_sst2_model_weights", type=bool, default=False, help="Add True or False to load model weight")
     # Parse arguments
     args = parser.parse_args()
 
@@ -133,7 +135,7 @@ if __name__ == "__main__" :
     # Adding cuda device
     gpus = check_gpu_availability(2, 1, [2, 3, 4, 5, 6, 7])
     print(f"occupied {gpus}")
-    os.environ['CUDA_VISIBLE_DEVICES'] = f'{",".join(map(str, gpus))}'
+    # os.environ['CUDA_VISIBLE_DEVICES'] = f'{",".join(map(str, gpus))}'
     device = torch.device(f"cuda:{gpus[0]}")
 
     # Loading Dataset
@@ -170,7 +172,6 @@ if __name__ == "__main__" :
                      pretrained_wv_type=args.pretrained_wv_type,
                      num_layers=1
                      )
-
     if args.model_type == "rnn" :
         # Defining Model
         model = RNN(total_word=num_vocab,
@@ -181,7 +182,8 @@ if __name__ == "__main__" :
                      word2idx=word2idx,
                      idx2word=idx2word,
                      bool_initialize_weights=args.bool_initialize_weights,
-                     pretrained_wv_type=args.pretrained_wv_type
+                     pretrained_wv_type=args.pretrained_wv_type,
+                    num_layers= 1
                      )
     if args.model_type == "cnn" :
         # Defining Model
@@ -196,6 +198,18 @@ if __name__ == "__main__" :
                     pretrained_wv_type=args.pretrained_wv_type
                     )
 
+    # Load model weights
+    if args.load_sst2_model_weights :
+        model_weights_dict = {
+            "lstm" : "/data/home/karmpatel/karm_8T/naman/demo/DLNLP_Ass1_Data/model_ckpts/model_lstm_dataset_3_bs_32_lr_0.0001_embed_300/31.pt",
+            "rnn" : "/data/home/karmpatel/karm_8T/naman/demo/DLNLP_Ass1_Data/model_ckpts/model_rnn_dataset_3_bs_32_lr_0.0001_embed_300/26.pt",
+            "cnn" : "/data/home/karmpatel/karm_8T/naman/demo/DLNLP_Ass1_Data/model_ckpts/model_cnn_dataset_3_bs_32_lr_0.0001_embed_300/47.pt"
+        }
+
+        data_dict = model_weights_dict[args.model_type]
+        model_weights = data_dict['model_weights']
+
+
     model.to(device)
 
 
@@ -207,13 +221,17 @@ if __name__ == "__main__" :
     print(f"Class Weights: {class_weights}")
 
     # Defining Loss, Optimizer, Scheduler
-    # loss_func = torch.nn.CrossEntropyLoss(weight= class_weights)
-    loss_func = torch.nn.CrossEntropyLoss()
+    if args.weighted_loss :
+        loss_func = torch.nn.CrossEntropyLoss(weight= class_weights)
+    else :
+        loss_func = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(params=model.parameters(), lr= learning_rate)
     scheduler = CosineAnnealingLR(optimizer, T_max= epochs)
 
     # Creating exp name
     exp_name = f"model_{args.model_type}_{dataset_type}_bs_{args.batch_size}_lr_{learning_rate}_embed_{embed_size}"
+    if args.weighted_loss :
+        exp_name += "_weigh_loss"
     print(f"Exp name : {exp_name}")
 
     # Initialize TensorBoard writer
@@ -271,7 +289,7 @@ if __name__ == "__main__" :
 
             os.makedirs(f"{args.ckpt_dir}/{exp_name}", exist_ok=True)
             torch.save(final_dict, f"{args.ckpt_dir}/{exp_name}/{epoch}.pt")
-            print(f"Best model saved with f1 score: {best_val_accuracy:.2f}%")
+            print(f"Best model saved with f1 score: {best_f1:.2f}%")
 
         # Check if validation loss improved
         if best_val_loss > val_loss :

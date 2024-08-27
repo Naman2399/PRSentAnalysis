@@ -47,6 +47,13 @@ def data_visulaization(df : pd.DataFrame) :
 def rating(score) :
     return int(score)
 
+def rating2c(score) :
+
+    if int(score) == 5 :
+        return  1
+    else :
+        return 0
+
 def clean_text(text) :
     # remove punctuations and uppercase
     text = str(text)
@@ -65,13 +72,17 @@ def clean_text(text) :
     return str(sentence)
 
 
-def text_preprocessing(df : pd.DataFrame) :
+def text_preprocessing(df : pd.DataFrame, get2class = False) :
 
     # Preprocessing rating
     df['Rating'] = df['Rating'].apply(rating)
+    if get2class :
+        df['Rating2C'] = df['Rating'].apply(rating2c)
+
     df['Rating'] = df['Rating'] - df['Rating'].min()
     # Cleaning Review Text
     df['Review'] = df['Review'].apply(clean_text)
+
     # Length of Dataset
     df['Length'] = df['Review'].apply(lambda r: len(r.split(" ")))
     new_length = df['Length'].sum()
@@ -83,7 +94,7 @@ def dataframe_to_csv(df : pd.DataFrame, dir_path : str, file_name : str) :
     df.to_csv(file_path)
     return file_path
 
-def preprocessing(df : pd.DataFrame, dir_path = "../data", file_name = None ) :
+def preprocessing(df : pd.DataFrame, dir_path = "../data", file_name = None, get2class = False ) :
 
     if file_name is None :
         print("Enter a valid file name")
@@ -91,7 +102,7 @@ def preprocessing(df : pd.DataFrame, dir_path = "../data", file_name = None ) :
 
     data_visulaization(df)
     # Preprocessing dataset
-    df = text_preprocessing(df)
+    df = text_preprocessing(df, get2class = True)
     processed_file_path = dataframe_to_csv(df, dir_path, file_name)
     return processed_file_path
 

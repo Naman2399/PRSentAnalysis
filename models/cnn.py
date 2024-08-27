@@ -148,6 +148,30 @@ class CNN(torch.nn.Module):
                 # Initialize biases to zero
                 nn.init.zeros_(layer.bias)
 
+    def load_sst2_weights(self, model_weights):
+
+        # Iterate through the state dictionary of the model
+        current_model_state = self.state_dict()  # Get the current state of the model
+        pretrained_state = model_weights  # Loaded pre-trained state dict
+
+        # Filter out the classifier layers from the pretrained_state
+        pretrained_state = {k: v for k, v in pretrained_state.items() if 'classifier' not in k}
+
+        # Update the current model state with the pretrained weights
+        current_model_state.update(pretrained_state)
+
+        # Load the updated state dict into the model
+        self.load_state_dict(current_model_state)
+
+    def freeze_grads(self, freeze_classifier=False):
+        self.embed.requires_grad_(False)
+        self.conv_block_1.requires_grad_(False)
+        self.pool.requires_grad_(False)
+
+        if freeze_classifier:
+            self.classifier.requires_grad_(False)
+
+
 if __name__ == "__main__" :
 
     # Define the size parameters
