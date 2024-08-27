@@ -77,9 +77,10 @@ def train_eval_loop(epoch, model, train_loader, loss_func, optimizer, scheduler,
     balance_accuracy = balanced_accuracy_score(y_true_max, y_pred_max)
     precision = precision_score(y_true_max, y_pred_max, average='macro')
     recall = recall_score(y_true_max, y_pred_max, average='macro')
-    f1 = f1_score(y_true_max, y_pred_max, average='macro')
+    f1 = f1_score(y_true_max, y_pred_max, average='weighted')
     auc = roc_auc_score(y_true, y_pred, multi_class="ovr")
-
+    auc_class = roc_auc_score(y_true, y_pred, multi_class="ovr", average= None)
+    f1_class = f1_score(y_true_max, y_pred_max, average= None)
     pbar.set_postfix({
         "Loss": running_loss / curr_count,
         "Acc" : accuracy,
@@ -89,13 +90,17 @@ def train_eval_loop(epoch, model, train_loader, loss_func, optimizer, scheduler,
     })
 
     # Adding details to tensorboard
-    writer.add_scalar(f"{split_type}/loss", running_loss / curr_count, epoch + 1)
-    writer.add_scalar(f"{split_type}/accuracy", accuracy, epoch + 1)
-    writer.add_scalar(f"{split_type}/balance_accuracy", balance_accuracy, epoch + 1)
-    writer.add_scalar(f"{split_type}/precision", precision, epoch + 1)
-    writer.add_scalar(f"{split_type}/recall", recall, epoch + 1)
-    writer.add_scalar(f"{split_type}/f1", f1, epoch + 1)
-    writer.add_scalar(f"{split_type}/auc", auc, epoch + 1)
+    writer.add_scalar(f"{split_type}/loss", running_loss / curr_count, epoch)
+    writer.add_scalar(f"{split_type}/accuracy", accuracy, epoch)
+    writer.add_scalar(f"{split_type}/balance_accuracy", balance_accuracy, epoch)
+    writer.add_scalar(f"{split_type}/precision", precision, epoch)
+    writer.add_scalar(f"{split_type}/recall", recall, epoch)
+    writer.add_scalar(f"{split_type}/f1", f1, epoch)
+    writer.add_scalar(f"{split_type}/auc", auc, epoch)
+    for idx in range(int(auc_class.shape[0])) :
+        writer.add_scalar(f'{split_type}_AUC/Class {idx}', auc_class[idx], epoch)
+    for idx in range(int(f1_class.shape[0])):
+        writer.add_scalar(f'{split_type}_F1/Class {idx}', f1_class[idx], epoch)
 
     return accuracy, auc, balance_accuracy, running_loss / curr_count, f1
 
@@ -108,7 +113,7 @@ if __name__ == "__main__" :
 
     # Add arguments
     parser.add_argument('--output_seq_len', type=int, default=100, help='Length of the output sequence')
-    parser.add_argument('--batch_size', type=int, default=32, help='Batch size for training')
+    parser.add_argument('--batch_size', type=int, default=64, help='Batch size for training')
     parser.add_argument('--learning_rate', type=float, default=0.0001, help='Learning rate for the optimizer')
     parser.add_argument('--epochs', type=int, default=100,help='Number of training epochs')
     parser.add_argument('--embed_size', type=int, default=300, help='Size of the embedding vector')
@@ -118,7 +123,7 @@ if __name__ == "__main__" :
     parser.add_argument("--ckpt_dir", type=str, default="/data/home/karmpatel/karm_8T/naman/demo/DLNLP_Ass1_Data/model_ckpts", help="can edit any save directory")
     parser.add_argument("--bool_initialize_weights", type=bool, default=False)
     parser.add_argument("--pretrained_wv_type", type=str, default="word2vec", help="Options : word2vec, glove")
-    parser.add_argument("--model_type", type=str, default="rnn", help="Options : lstm, rnn, cnn")
+    parser.add_argument("--model_type", type=str, default="lstm", help="Options : lstm, rnn, cnn")
     parser.add_argument("--weighted_loss", type=bool, default=False, help="Add True or False to use weighted loss")
     parser.add_argument("--load_sst2_model_weights", type=bool, default=False, help="Add True or False to load model weight")
     # Parse arguments
@@ -170,7 +175,7 @@ if __name__ == "__main__" :
                      idx2word=idx2word,
                      bool_initialize_weights=args.bool_initialize_weights,
                      pretrained_wv_type=args.pretrained_wv_type,
-                     num_layers=1
+                     num_layers=2
                      )
     if args.model_type == "rnn" :
         # Defining Model
@@ -229,9 +234,10 @@ if __name__ == "__main__" :
     scheduler = CosineAnnealingLR(optimizer, T_max= epochs)
 
     # Creating exp name
-    exp_name = f"model_{args.model_type}_{dataset_type}_bs_{args.batch_size}_lr_{learning_rate}_embed_{embed_size}"
+    exp_name = f"model_{args.model_type}_{dataset_type}_bs_{args.batch_size}_lr_{learning_rate}_embed_{embed_size}_classes_{num_classes}"
     if args.weighted_loss :
         exp_name += "_weigh_loss"
+    exp_name += "_f1_weigh"
     print(f"Exp name : {exp_name}")
 
     # Initialize TensorBoard writer

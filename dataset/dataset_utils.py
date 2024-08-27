@@ -106,14 +106,14 @@ def preprocessing(df : pd.DataFrame, dir_path = "../data", file_name = None, get
     processed_file_path = dataframe_to_csv(df, dir_path, file_name)
     return processed_file_path
 
-def split_train_test_validation(df : pd.DataFrame, valid_test_ratio =0.2 , valid_ratio_from_test = 0.5) :
+def split_train_test_validation(df : pd.DataFrame, x_col = "Review", y_col = "Rating", valid_test_ratio =0.2 , valid_ratio_from_test = 0.5) :
 
-    df['Review'] = df['Review'].astype(str)
-    df['Rating'] = df['Rating'].astype(int)
+    df[x_col] = df[x_col].astype(str)
+    df[y_col] = df[y_col].astype(int)
 
     # Step 1: Split into training and temporary sets (temporary = test + validation)
     X_train, X_temp, y_train, y_temp = train_test_split(
-        df['Review'], df['Rating'], test_size= valid_test_ratio, stratify=df['Rating'], random_state=42,
+        df[x_col], df[y_col], test_size= valid_test_ratio, stratify=df[y_col], random_state=42,
     )
 
     # Step 2: Split the temporary set into validation and test sets
@@ -125,7 +125,7 @@ def split_train_test_validation(df : pd.DataFrame, valid_test_ratio =0.2 , valid
 
 
 def get_data_loaders(file_path : str, valid_test_ration =0.2, valid_ratio_from_test =0.5,
-                     output_seq_len = None, batch_size = 64) :
+                     output_seq_len = None, batch_size = 64, x_col = "Review", y_col = "Rating" , split_sub_class = False) :
 
     '''
 
@@ -140,18 +140,22 @@ def get_data_loaders(file_path : str, valid_test_ration =0.2, valid_ratio_from_t
     # Using Post processed csv file
     print(f"Reading data from : {file_path} ")
     df = pd.read_csv(file_path)
+
+    if split_sub_class :
+        df = df[df['Rating2C'] == 0]
+
     # Get details
-    unique_ratings = df['Rating'].unique()
+    unique_ratings = df[y_col].unique()
     num_classes = len(unique_ratings)
     print(f"Number of classes : {num_classes}")
-    rating_counts = df['Rating'].value_counts()
+    rating_counts = df[y_col].value_counts()
     rating_counts_sorted = rating_counts.sort_index()
 
     # Creating max sequence length ( Mean + 2 * std)
     if output_seq_len is None :
         output_seq_len = int(df['Length'].mean() + 2 * df['Length'].std())
 
-    X_train, X_val, X_test, y_train, y_val, y_test = split_train_test_validation(df)
+    X_train, X_val, X_test, y_train, y_val, y_test = split_train_test_validation(df, x_col = x_col, y_col = y_col)
 
     # Check the size sets
     print(f"Training set: {len(X_train)} samples")
@@ -411,25 +415,30 @@ def get_data_loaders_with_different_file_paths(file_path : typing.Dict, output_s
 
     return train_loader, val_loader, test_loader, num_classes, rating_counts_sorted.tolist(), vectorizer
 
-def get_train_data_loaders(file_path, batch_size = 64, output_seq_len = None) :
+def get_train_data_loaders(file_path, batch_size = 64, output_seq_len = None,
+                           x_col = "Review", y_col = "Rating", split_sub_class = False) :
 
     # Using Post processed csv file
     print(f"Reading data from : {file_path} ")
     df_train = pd.read_csv(file_path)
 
+    if split_sub_class :
+        df_train = df_train[df_train['Rating2C'] == 0]
+
     # Get details
-    unique_ratings = df_train['Rating'].unique()
+    unique_ratings = df_train[y_col].unique()
     num_classes = len(unique_ratings)
     print(f"Number of classes : {num_classes}")
-    rating_counts = df_train['Rating'].value_counts()
+    rating_counts = df_train[y_col].value_counts()
     rating_counts_sorted = rating_counts.sort_index()
+
 
     # Creating max sequence length ( Mean + 2 * std)
     if output_seq_len is None:
-        output_seq_len = int(df_train['Length'].mean() + 2 * df_train['Length'].std())
+        output_seq_len = int(df_train['Length'].mean() + 3 * df_train['Length'].std())
 
     # Now get the train, validation, test
-    X_train, y_train = df_train['Review'].astype(str), df_train['Rating']
+    X_train, y_train = df_train[x_col].astype(str), df_train[y_col]
 
     # Check the size sets
     print(f"Training set: {len(X_train)} samples")
@@ -491,13 +500,17 @@ def get_train_data_loaders(file_path, batch_size = 64, output_seq_len = None) :
 
     return train_loader, num_classes, rating_counts_sorted.tolist(), vectorizer
 
-def get_eval_data_loaders(file_path, num_classes, vectorizer, batch_size = 64) :
+def get_eval_data_loaders(file_path, num_classes, vectorizer, batch_size = 64,
+                          x_col = "Review", y_col = "Rating" , split_sub_class = False) :
 
     # Using Post processed csv file
     print(f"Reading data from : {file_path} ")
     df = pd.read_csv(file_path)
 
-    X, y = df['Review'].astype(str), df['Rating']
+    if split_sub_class :
+        df = df[df['Rating2C'] == 0]
+
+    X, y = df[x_col].astype(str), df[y_col]
 
     # Check the size sets
     print(f"Dataset: {len(X)} samples")

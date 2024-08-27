@@ -1,6 +1,7 @@
 import pandas as pd
 
-from dataset.dataset_utils import get_data_loaders, get_mapping, preprocessing, get_eval_data_loaders
+from dataset.dataset_utils import get_data_loaders, get_mapping, preprocessing, get_eval_data_loaders, \
+    get_train_data_loaders
 
 
 def read_dataset_n_modify_column_name(file_name) :
@@ -18,21 +19,50 @@ def read_dataset_n_modify_column_name(file_name) :
 
 
 def load_dataset(output_seq_len, batch_size):
-    file_name = "/mnt/hdd/karmpatel/naman/demo/DLNLP_Ass1_Data/Aug24-Assignmen1-Dataset1.csv"
-    df = read_dataset_n_modify_column_name(file_name)
+    # file_name_train = "/mnt/hdd/karmpatel/naman/demo/DLNLP_Ass1_Data/Aug24-Assignmen1-Dataset1.csv"
+    # file_name_val = "/mnt/hdd/karmpatel/naman/demo/DLNLP_Ass1_Data/Aug24-Assignment1-Validation-Dataset1.csv"
+    # file_name_test = "/mnt/hdd/karmpatel/naman/demo/DLNLP_Ass1_Data/Aug24-Assignment1-Validation-Dataset1.csv"
+    # df_train = read_dataset_n_modify_column_name(file_name_train)
+    # df_val = read_dataset_n_modify_column_name(file_name_val)
+    # df_test = read_dataset_n_modify_column_name(file_name_test)
+    #
+    # # Preprocessing
+    # file_path_train = preprocessing(
+    #     df=df_train,
+    #     dir_path="../data",
+    #     file_name="dataset_shivde_postprocess_train.csv",
+    #     get2class = True
+    # )
+    #
+    # file_path_val = preprocessing(
+    #     df=df_val,
+    #     dir_path="../data",
+    #     file_name="dataset_shivde_postprocess_val.csv",
+    #     get2class=True
+    # )
+    #
+    # file_path_test = preprocessing(
+    #     df=df_test,
+    #     dir_path="../data",
+    #     file_name="dataset_shivde_postprocess_test.csv",
+    #     get2class=True
+    # )
 
-    # Preprocessing
-    file_path = preprocessing(
-        df=df,
-        dir_path="data",
-        file_name="dataset_shivde_postprocess.csv",
-        get2class = True
-    )
+    file_path_train = f"/raid/home/namanmalpani/final_yr/DLNLP_Assignment_1/data/dataset_shivde_postprocess_train.csv"
+    file_path_val = f"/raid/home/namanmalpani/final_yr/DLNLP_Assignment_1/data/dataset_shivde_postprocess_val.csv"
+    file_path_test = f"/raid/home/namanmalpani/final_yr/DLNLP_Assignment_1/data/dataset_shivde_postprocess_test.csv"
 
-    # file_path = f"/raid/home/namanmalpani/final_yr/DLNLP_Assignment_1/data/dataset_shivde_postprocess.csv"
+    train_loader, num_classes, rating_counts, vectorizer = get_train_data_loaders(file_path_train, batch_size=batch_size, x_col = "Review", y_col = "Rating2C")
+    val_loader = get_eval_data_loaders(file_path_val, num_classes, vectorizer, batch_size=batch_size, x_col = "Review", y_col = "Rating2C")
+    test_loader = get_eval_data_loaders(file_path_test, num_classes, vectorizer, batch_size=batch_size, x_col = "Review", y_col = "Rating2C")
 
-    train_loader, val_loader, test_loader, num_classes, rating_counts, vectorizer = get_data_loaders(file_path,
-                                                                                      batch_size= batch_size)
+
+    print("-" * 50)
+
+    train_loader, num_classes, rating_counts, vectorizer = get_train_data_loaders(file_path_train,batch_size=batch_size, x_col="Review",y_col="Rating", split_sub_class= False)
+    val_loader = get_eval_data_loaders(file_path_val, num_classes, vectorizer, batch_size=batch_size, x_col="Review", y_col="Rating", split_sub_class= False)
+    test_loader = get_eval_data_loaders(file_path_test, num_classes, vectorizer, batch_size=batch_size, x_col="Review", y_col="Rating", split_sub_class= False)
+
 
     # word2idx, idx2word = get_mapping(vectorizer)
     word2idx = None
@@ -60,7 +90,7 @@ def load_test_val_dataset(file_path, num_classes, vectorizer, batch_size) :
     return data_loader
 
 if __name__ == "__main__":
-    load_dataset()
+    load_dataset(80, 32)
 
 
 
