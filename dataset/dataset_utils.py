@@ -54,6 +54,16 @@ def rating2c(score) :
     else :
         return 0
 
+def rating3c(score) :
+
+    # Logic is score of 0/1 ---> Negative, 3 ---> Neutral, 4/5 ----> Positive
+    if int(score) < 3 :
+        return 0
+    elif int(score) == 3 :
+        return 1
+    else :
+        return 2
+
 def clean_text(text) :
     # remove punctuations and uppercase
     text = str(text)
@@ -78,6 +88,7 @@ def text_preprocessing(df : pd.DataFrame, get2class = False) :
     df['Rating'] = df['Rating'].apply(rating)
     if get2class :
         df['Rating2C'] = df['Rating'].apply(rating2c)
+        df['Rating3C'] = df['Rating'].apply(rating3c)
 
     df['Rating'] = df['Rating'] - df['Rating'].min()
     # Cleaning Review Text

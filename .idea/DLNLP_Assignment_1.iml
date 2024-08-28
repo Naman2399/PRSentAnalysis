@@ -5,6 +5,7 @@
       <excludeFolder url="file://$MODULE_DIR$/data" />
       <excludeFolder url="file://$MODULE_DIR$/plots" />
       <excludeFolder url="file://$MODULE_DIR$/runs" />
+      <excludeFolder url="file://$MODULE_DIR$/eval" />
     </content>
     <orderEntry type="jdk" jdkName="ml_project" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />

@@ -11,6 +11,7 @@ from gpu_util import check_gpu_availability
 from models.lstm import LSTM
 from models.rnn import RNN
 from models.cnn import CNN
+from models.cnn2 import CNN2
 from torch.utils.tensorboard import SummaryWriter
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, balanced_accuracy_score, roc_auc_score
 
@@ -77,7 +78,7 @@ def train_eval_loop(epoch, model, train_loader, loss_func, optimizer, scheduler,
     balance_accuracy = balanced_accuracy_score(y_true_max, y_pred_max)
     precision = precision_score(y_true_max, y_pred_max, average='macro')
     recall = recall_score(y_true_max, y_pred_max, average='macro')
-    f1 = f1_score(y_true_max, y_pred_max, average='weighted')
+    f1 = f1_score(y_true_max, y_pred_max, average='micro')
     auc = roc_auc_score(y_true, y_pred, multi_class="ovr")
     auc_class = roc_auc_score(y_true, y_pred, multi_class="ovr", average= None)
     f1_class = f1_score(y_true_max, y_pred_max, average= None)
@@ -113,9 +114,9 @@ if __name__ == "__main__" :
 
     # Add arguments
     parser.add_argument('--output_seq_len', type=int, default=100, help='Length of the output sequence')
-    parser.add_argument('--batch_size', type=int, default=64, help='Batch size for training')
-    parser.add_argument('--learning_rate', type=float, default=0.0001, help='Learning rate for the optimizer')
-    parser.add_argument('--epochs', type=int, default=100,help='Number of training epochs')
+    parser.add_argument('--batch_size', type=int, default=512, help='Batch size for training')
+    parser.add_argument('--learning_rate', type=float, default=0.0005, help='Learning rate for the optimizer')
+    parser.add_argument('--epochs', type=int, default=400,help='Number of training epochs')
     parser.add_argument('--embed_size', type=int, default=300, help='Size of the embedding vector')
     parser.add_argument('--dataset_type', type=str, default='dataset_2',
                         help='We have 3 options dataset_1, dataset_2, dataset_3 '
@@ -123,7 +124,7 @@ if __name__ == "__main__" :
     parser.add_argument("--ckpt_dir", type=str, default="/data/home/karmpatel/karm_8T/naman/demo/DLNLP_Ass1_Data/model_ckpts", help="can edit any save directory")
     parser.add_argument("--bool_initialize_weights", type=bool, default=False)
     parser.add_argument("--pretrained_wv_type", type=str, default="word2vec", help="Options : word2vec, glove")
-    parser.add_argument("--model_type", type=str, default="lstm", help="Options : lstm, rnn, cnn")
+    parser.add_argument("--model_type", type=str, default="cnn2", help="Options : lstm, lstm2, lstm3, rnn, rnn2, rnn3, cnn, cnn2")
     parser.add_argument("--weighted_loss", type=bool, default=False, help="Add True or False to use weighted loss")
     parser.add_argument("--load_sst2_model_weights", type=bool, default=False, help="Add True or False to load model weight")
     # Parse arguments
@@ -175,7 +176,7 @@ if __name__ == "__main__" :
                      idx2word=idx2word,
                      bool_initialize_weights=args.bool_initialize_weights,
                      pretrained_wv_type=args.pretrained_wv_type,
-                     num_layers=2
+                     num_layers=1
                      )
     if args.model_type == "rnn" :
         # Defining Model
@@ -202,6 +203,70 @@ if __name__ == "__main__" :
                     bool_initialize_weights=args.bool_initialize_weights,
                     pretrained_wv_type=args.pretrained_wv_type
                     )
+    if args.model_type == "cnn2" :
+        # Defining Model
+        model = CNN2(total_word=num_vocab,
+                    embed_size=embed_size,
+                    hidden_size=300,
+                    num_class=num_classes,
+                    vectorizer=vectorizer,
+                    word2idx=word2idx,
+                    idx2word=idx2word,
+                    bool_initialize_weights=args.bool_initialize_weights,
+                    pretrained_wv_type=args.pretrained_wv_type
+                    )
+    if args.model_type == "lstm2" :
+        # Defining Model
+        model = LSTM(total_word=num_vocab,
+                     embed_size=embed_size,
+                     hidden_size=300,
+                     num_class=num_classes,
+                     vectorizer=vectorizer,
+                     word2idx=word2idx,
+                     idx2word=idx2word,
+                     bool_initialize_weights=args.bool_initialize_weights,
+                     pretrained_wv_type=args.pretrained_wv_type,
+                     num_layers=2
+                     )
+    if args.model_type == "rnn2" :
+        # Defining Model
+        model = RNN(total_word=num_vocab,
+                     embed_size=embed_size,
+                     hidden_size=300,
+                     num_class=num_classes,
+                     vectorizer=vectorizer,
+                     word2idx=word2idx,
+                     idx2word=idx2word,
+                     bool_initialize_weights=args.bool_initialize_weights,
+                     pretrained_wv_type=args.pretrained_wv_type,
+                    num_layers= 2
+                     )
+    if args.model_type == "lstm3" :
+        # Defining Model
+        model = LSTM(total_word=num_vocab,
+                     embed_size=embed_size,
+                     hidden_size=300,
+                     num_class=num_classes,
+                     vectorizer=vectorizer,
+                     word2idx=word2idx,
+                     idx2word=idx2word,
+                     bool_initialize_weights=args.bool_initialize_weights,
+                     pretrained_wv_type=args.pretrained_wv_type,
+                     num_layers=3
+                     )
+    if args.model_type == "rnn3" :
+        # Defining Model
+        model = RNN(total_word=num_vocab,
+                     embed_size=embed_size,
+                     hidden_size=300,
+                     num_class=num_classes,
+                     vectorizer=vectorizer,
+                     word2idx=word2idx,
+                     idx2word=idx2word,
+                     bool_initialize_weights=args.bool_initialize_weights,
+                     pretrained_wv_type=args.pretrained_wv_type,
+                    num_layers= 3
+                     )
 
     # Load model weights
     if args.load_sst2_model_weights :
@@ -267,8 +332,8 @@ if __name__ == "__main__" :
 
         # Model Saving
         # Check if this is the best model so far, and save it
-        if val_f1 > best_f1:
-            best_f1 = val_f1
+        if val_accuracy > best_val_accuracy:
+            best_val_accuracy = val_accuracy
 
             final_dict = {
                 'train_accuracy' : train_accuracy,
@@ -295,7 +360,7 @@ if __name__ == "__main__" :
 
             os.makedirs(f"{args.ckpt_dir}/{exp_name}", exist_ok=True)
             torch.save(final_dict, f"{args.ckpt_dir}/{exp_name}/{epoch}.pt")
-            print(f"Best model saved with f1 score: {best_f1:.2f}%")
+            print(f"Best model saved with val accuracy : {best_val_accuracy:.2f}%")
 
         # Check if validation loss improved
         if best_val_loss > val_loss :

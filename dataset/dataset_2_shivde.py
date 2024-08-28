@@ -52,16 +52,19 @@ def load_dataset(output_seq_len, batch_size):
     file_path_val = f"/raid/home/namanmalpani/final_yr/DLNLP_Assignment_1/data/dataset_shivde_postprocess_val.csv"
     file_path_test = f"/raid/home/namanmalpani/final_yr/DLNLP_Assignment_1/data/dataset_shivde_postprocess_test.csv"
 
-    train_loader, num_classes, rating_counts, vectorizer = get_train_data_loaders(file_path_train, batch_size=batch_size, x_col = "Review", y_col = "Rating2C")
-    val_loader = get_eval_data_loaders(file_path_val, num_classes, vectorizer, batch_size=batch_size, x_col = "Review", y_col = "Rating2C")
-    test_loader = get_eval_data_loaders(file_path_test, num_classes, vectorizer, batch_size=batch_size, x_col = "Review", y_col = "Rating2C")
+    x_col = "Review"
+    y_col = "Rating"
+
+    train_loader, num_classes, rating_counts, vectorizer = get_train_data_loaders(file_path_train, batch_size=batch_size, x_col = x_col, y_col = y_col)
+    val_loader = get_eval_data_loaders(file_path_val, num_classes, vectorizer, batch_size=batch_size, x_col = x_col, y_col = y_col)
+    test_loader = get_eval_data_loaders(file_path_test, num_classes, vectorizer, batch_size=batch_size, x_col = x_col, y_col = y_col)
 
 
     print("-" * 50)
 
-    train_loader, num_classes, rating_counts, vectorizer = get_train_data_loaders(file_path_train,batch_size=batch_size, x_col="Review",y_col="Rating", split_sub_class= False)
-    val_loader = get_eval_data_loaders(file_path_val, num_classes, vectorizer, batch_size=batch_size, x_col="Review", y_col="Rating", split_sub_class= False)
-    test_loader = get_eval_data_loaders(file_path_test, num_classes, vectorizer, batch_size=batch_size, x_col="Review", y_col="Rating", split_sub_class= False)
+    # train_loader, num_classes, rating_counts, vectorizer = get_train_data_loaders(file_path_train,batch_size=batch_size, x_col="Review",y_col="Rating", split_sub_class= False)
+    # val_loader = get_eval_data_loaders(file_path_val, num_classes, vectorizer, batch_size=batch_size, x_col="Review", y_col="Rating", split_sub_class= False)
+    # test_loader = get_eval_data_loaders(file_path_test, num_classes, vectorizer, batch_size=batch_size, x_col="Review", y_col="Rating", split_sub_class= False)
 
 
     # word2idx, idx2word = get_mapping(vectorizer)
@@ -73,17 +76,14 @@ def load_dataset(output_seq_len, batch_size):
 
 def load_test_val_dataset(file_path, num_classes, vectorizer, batch_size) :
 
-    file_name = "/mnt/hdd/karmpatel/naman/demo/DLNLP_Ass1_Data/Aug24-Assignmen1-Dataset1.csv"
-    df = read_dataset_n_modify_column_name(file_name)
+    df = read_dataset_n_modify_column_name(file_path)
 
     # Preprocessing
     file_path = preprocessing(
         df=df,
         dir_path="data",
-        file_name="dataset_shivde_postprocess.csv"
+        file_name="dataset_shivde_postprocess_eval.csv"
     )
-
-    # file_path = f"/raid/home/namanmalpani/final_yr/DLNLP_Assignment_1/data/dataset_shivde_postprocess.csv"
 
     data_loader = get_eval_data_loaders(file_path, num_classes, vectorizer, batch_size=batch_size)
 
