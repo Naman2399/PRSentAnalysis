@@ -25,6 +25,29 @@ class CustomDataset(Dataset):
     def __getitem__(self, idx):
         return self.features[idx], self.labels[idx]
 
+class CustomDatasetWithOriginal(Dataset):
+    def __init__(self, features, labels, original_text):
+        self.features = features
+        self.labels = labels
+        self.original_test = original_text
+
+    def __len__(self):
+        return len(self.features)
+
+    def __getitem__(self, idx):
+        return self.features[idx], self.labels[idx], self.original_test[idx]
+
+class CustomDatasetOnlyText(Dataset):
+    def __init__(self, features, original_text):
+        self.features = features
+        self.original_test = original_text
+
+    def __len__(self):
+        return len(self.features)
+
+    def __getitem__(self, idx):
+        return self.features[idx], self.original_test[idx]
+
 
 def data_visulaization(df : pd.DataFrame) :
 
@@ -85,6 +108,7 @@ def clean_text(text) :
 def text_preprocessing(df : pd.DataFrame, get2class = False) :
 
     # Preprocessing rating
+    df['Original'] = df['Review']
     df['Rating'] = df['Rating'].apply(rating)
     if get2class :
         df['Rating2C'] = df['Rating'].apply(rating2c)
@@ -100,20 +124,37 @@ def text_preprocessing(df : pd.DataFrame, get2class = False) :
     print('Total word after cleaning: {}'.format(new_length))
     return df
 
+def text_preprocessing_only_text(df : pd.DataFrame) :
+
+    # Preprocessing rating
+    df['Original'] = df['Review']
+    # Cleaning Review Text
+    df['Review'] = df['Review'].apply(clean_text)
+
+    # Length of Dataset
+    df['Length'] = df['Review'].apply(lambda r: len(r.split(" ")))
+    new_length = df['Length'].sum()
+    print('Total word after cleaning: {}'.format(new_length))
+    return df
+
 def dataframe_to_csv(df : pd.DataFrame, dir_path : str, file_name : str) :
     file_path = os.path.join(dir_path, file_name )
     df.to_csv(file_path)
     return file_path
 
-def preprocessing(df : pd.DataFrame, dir_path = "../data", file_name = None, get2class = False ) :
+def preprocessing(df : pd.DataFrame, dir_path = "../data", file_name = None, get2class = False, visulaize = True) :
 
     if file_name is None :
         print("Enter a valid file name")
         exit()
 
-    data_visulaization(df)
-    # Preprocessing dataset
-    df = text_preprocessing(df, get2class = True)
+    if visulaize :
+        data_visulaization(df)
+        # Preprocessing dataset
+        df = text_preprocessing(df, get2class = True)
+    else :
+        # Preprocessing dataset
+        df = text_preprocessing_only_text(df)
     processed_file_path = dataframe_to_csv(df, dir_path, file_name)
     return processed_file_path
 
@@ -512,55 +553,211 @@ def get_train_data_loaders(file_path, batch_size = 64, output_seq_len = None,
     return train_loader, num_classes, rating_counts_sorted.tolist(), vectorizer
 
 def get_eval_data_loaders(file_path, num_classes, vectorizer, batch_size = 64,
-                          x_col = "Review", y_col = "Rating" , split_sub_class = False) :
+                          x_col = "Review", y_col = "Rating" , split_sub_class = False, original_col_name = "Original", include_original_text = False) :
 
-    # Using Post processed csv file
-    print(f"Reading data from : {file_path} ")
-    df = pd.read_csv(file_path)
+    if include_original_text :
 
-    if split_sub_class :
-        df = df[df['Rating2C'] == 0]
+        # Using Post processed csv file
+        print(f"Reading data from : {file_path} ")
+        df = pd.read_csv(file_path)
 
-    X, y = df[x_col].astype(str), df[y_col]
+        if split_sub_class:
+            df = df[df['Rating2C'] == 0]
 
-    # Check the size sets
-    print(f"Dataset: {len(X)} samples")
+        X, X_original, y = df[x_col].astype(str), df[original_col_name], df[y_col]
 
-    # convert text -> number
-    X = vectorizer(X)
-    X_tf = tf.convert_to_tensor(X)
-    y_tf = tf.convert_to_tensor(y)
+        # Check the size sets
+        print(f"Dataset: {len(X)} samples")
 
-    # Convert Tensorflow tensors to NumPy arrays
-    X_np = X_tf.numpy()
-    y_np = y_tf.numpy()
+        # convert text -> number
+        X = vectorizer(X)
+        X_tf = tf.convert_to_tensor(X)
+        y_tf = tf.convert_to_tensor(y)
 
-    # Convert NumPy arrays to PyTorch tensors
-    X = torch.tensor(X_np)
-    y = torch.tensor(y_np)
+        # Convert Tensorflow tensors to NumPy arrays
+        X_np = X_tf.numpy()
+        y_np = y_tf.numpy()
 
-    # Converting y_test to categorical data
-    y = torch.nn.functional.one_hot(y, num_classes=num_classes)
-    y = y.float()
+        # Convert NumPy arrays to PyTorch tensors
+        X = torch.tensor(X_np)
+        y = torch.tensor(y_np)
 
-    # Print shape
-    print(f"X : {X.shape}, {type(X)}")
-    print(f"y : {y.shape}, {type(y)}")
+        # Converting y_test to categorical data
+        y = torch.nn.functional.one_hot(y, num_classes=num_classes)
+        y = y.float()
 
-    # Preparing Dataset
-    dataset = CustomDataset(X, y)
+        # Print shape
+        print(f"X : {X.shape}, {type(X)}")
+        print(f"y : {y.shape}, {type(y)}")
 
-    # Creating Dataloaders
-    data_loader = DataLoader(dataset, batch_size= batch_size, shuffle=False, drop_last=False)
+        # X_original ---> panda seris to list
+        X_original = X_original.tolist()
 
-    # Get the shape of the first batch from train_loader
-    for batch in data_loader:
-        X_batch, y_batch = batch
-        print(f"Shape of X_batch: {X_batch.shape}")
-        print(f"Shape of y_batch: {y_batch.shape}")
-        unique, counts = torch.unique(torch.argmax(y_batch, dim=1), return_counts=True)
-        print(f"Batch class distribution: {dict(zip(unique.numpy(), counts.numpy()))}")
-        break  # Break after the first batch to avoid processing the entire dataset
+        # Preparing Dataset
+        dataset = CustomDatasetWithOriginal(X, y, X_original)
+
+        # Creating Dataloaders
+        data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, drop_last=False)
+
+        # Get the shape of the first batch from train_loader
+        for batch in data_loader:
+            X_batch, y_batch, X_original = batch
+            print(f"Shape of X_batch: {X_batch.shape}")
+            print(f"Shape of y_batch: {y_batch.shape}")
+            print(f"Shape of X_original: {X_original}")
+            unique, counts = torch.unique(torch.argmax(y_batch, dim=1), return_counts=True)
+            print(f"Batch class distribution: {dict(zip(unique.numpy(), counts.numpy()))}")
+            break  # Break after the first batch to avoid processing the entire dataset
+
+    else :
+        # Using Post processed csv file
+        print(f"Reading data from : {file_path} ")
+        df = pd.read_csv(file_path)
+
+        if split_sub_class:
+            df = df[df['Rating2C'] == 0]
+
+        X, y = df[x_col].astype(str), df[y_col]
+
+        # Check the size sets
+        print(f"Dataset: {len(X)} samples")
+
+        # convert text -> number
+        X = vectorizer(X)
+        X_tf = tf.convert_to_tensor(X)
+        y_tf = tf.convert_to_tensor(y)
+
+        # Convert Tensorflow tensors to NumPy arrays
+        X_np = X_tf.numpy()
+        y_np = y_tf.numpy()
+
+        # Convert NumPy arrays to PyTorch tensors
+        X = torch.tensor(X_np)
+        y = torch.tensor(y_np)
+
+        # Converting y_test to categorical data
+        y = torch.nn.functional.one_hot(y, num_classes=num_classes)
+        y = y.float()
+
+        # Print shape
+        print(f"X : {X.shape}, {type(X)}")
+        print(f"y : {y.shape}, {type(y)}")
+
+        # Preparing Dataset
+        dataset = CustomDataset(X, y)
+
+        # Creating Dataloaders
+        data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, drop_last=False)
+
+        # Get the shape of the first batch from train_loader
+        for batch in data_loader:
+            X_batch, y_batch = batch
+            print(f"Shape of X_batch: {X_batch.shape}")
+            print(f"Shape of y_batch: {y_batch.shape}")
+            unique, counts = torch.unique(torch.argmax(y_batch, dim=1), return_counts=True)
+            print(f"Batch class distribution: {dict(zip(unique.numpy(), counts.numpy()))}")
+            break  # Break after the first batch to avoid processing the entire dataset
+
+
+    return data_loader
+
+
+def get_eval_data_loaders_only_text(file_path, num_classes, vectorizer, batch_size = 64,
+                          x_col = "Review", split_sub_class = False, original_col_name = "Original", include_original_text = False) :
+
+    if include_original_text :
+
+        # Using Post processed csv file
+        print(f"Reading data from : {file_path} ")
+        df = pd.read_csv(file_path)
+
+        if split_sub_class:
+            df = df[df['Rating2C'] == 0]
+
+        X, X_original = df[x_col].astype(str), df[original_col_name]
+
+        # Check the size sets
+        print(f"Dataset: {len(X)} samples")
+
+        # convert text -> number
+        X = vectorizer(X)
+        X_tf = tf.convert_to_tensor(X)
+
+        # Convert Tensorflow tensors to NumPy arrays
+        X_np = X_tf.numpy()
+
+        # Convert NumPy arrays to PyTorch tensors
+        X = torch.tensor(X_np)
+
+
+        # Print shape
+        print(f"X : {X.shape}, {type(X)}")
+
+        # X_original ---> panda seris to list
+        X_original = X_original.tolist()
+
+        # Preparing Dataset
+        dataset = CustomDatasetOnlyText(X, X_original)
+
+        # Creating Dataloaders
+        data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, drop_last=False)
+
+        # Get the shape of the first batch from train_loader
+        for batch in data_loader:
+            X_batch, X_original = batch
+            print(f"Shape of X_batch: {X_batch.shape}")
+            print(f"Shape of X_original: {X_original}")
+            break  # Break after the first batch to avoid processing the entire dataset
+
+    else :
+        # Using Post processed csv file
+        print(f"Reading data from : {file_path} ")
+        df = pd.read_csv(file_path)
+
+        if split_sub_class:
+            df = df[df['Rating2C'] == 0]
+
+        X, y = df[x_col].astype(str), df[y_col]
+
+        # Check the size sets
+        print(f"Dataset: {len(X)} samples")
+
+        # convert text -> number
+        X = vectorizer(X)
+        X_tf = tf.convert_to_tensor(X)
+        y_tf = tf.convert_to_tensor(y)
+
+        # Convert Tensorflow tensors to NumPy arrays
+        X_np = X_tf.numpy()
+        y_np = y_tf.numpy()
+
+        # Convert NumPy arrays to PyTorch tensors
+        X = torch.tensor(X_np)
+        y = torch.tensor(y_np)
+
+        # Converting y_test to categorical data
+        y = torch.nn.functional.one_hot(y, num_classes=num_classes)
+        y = y.float()
+
+        # Print shape
+        print(f"X : {X.shape}, {type(X)}")
+        print(f"y : {y.shape}, {type(y)}")
+
+        # Preparing Dataset
+        dataset = CustomDataset(X, y)
+
+        # Creating Dataloaders
+        data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, drop_last=False)
+
+        # Get the shape of the first batch from train_loader
+        for batch in data_loader:
+            X_batch, y_batch = batch
+            print(f"Shape of X_batch: {X_batch.shape}")
+            print(f"Shape of y_batch: {y_batch.shape}")
+            unique, counts = torch.unique(torch.argmax(y_batch, dim=1), return_counts=True)
+            print(f"Batch class distribution: {dict(zip(unique.numpy(), counts.numpy()))}")
+            break  # Break after the first batch to avoid processing the entire dataset
+
 
     return data_loader
 

@@ -12,6 +12,7 @@ from models.lstm import LSTM
 from models.rnn import RNN
 from models.cnn import CNN
 from models.cnn2 import CNN2
+from models.gru import GRU
 from torch.utils.tensorboard import SummaryWriter
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, balanced_accuracy_score, roc_auc_score
 
@@ -114,19 +115,21 @@ if __name__ == "__main__" :
 
     # Add arguments
     parser.add_argument('--output_seq_len', type=int, default=100, help='Length of the output sequence')
-    parser.add_argument('--batch_size', type=int, default=512, help='Batch size for training')
-    parser.add_argument('--learning_rate', type=float, default=0.0005, help='Learning rate for the optimizer')
-    parser.add_argument('--epochs', type=int, default=400,help='Number of training epochs')
+    parser.add_argument('--batch_size', type=int, default=64, help='Batch size for training')
+    parser.add_argument('--learning_rate', type=float, default=0.0001, help='Learning rate for the optimizer')
+    parser.add_argument('--epochs', type=int, default=200,help='Number of training epochs')
     parser.add_argument('--embed_size', type=int, default=300, help='Size of the embedding vector')
     parser.add_argument('--dataset_type', type=str, default='dataset_2',
                         help='We have 3 options dataset_1, dataset_2, dataset_3 '
                              'dataset_2 is Original dataset ----> shivde')
-    parser.add_argument("--ckpt_dir", type=str, default="/data/home/karmpatel/karm_8T/naman/demo/DLNLP_Ass1_Data/model_ckpts", help="can edit any save directory")
+    parser.add_argument("--ckpt_dir", type=str, default="/data/home/karmpatel/karm_8T/naman/demo/DLNLP_Ass1_Data/model_ckpts/", help="can edit any save directory")
     parser.add_argument("--bool_initialize_weights", type=bool, default=False)
-    parser.add_argument("--pretrained_wv_type", type=str, default="word2vec", help="Options : word2vec, glove")
-    parser.add_argument("--model_type", type=str, default="cnn2", help="Options : lstm, lstm2, lstm3, rnn, rnn2, rnn3, cnn, cnn2")
+    parser.add_argument("--pretrained_wv_type", type=str, default="glove", help="Options : word2vec, glove")
+    parser.add_argument("--model_type", type=str, default="cnn2", help="Options : lstm, lstm2, lstm3, rnn, rnn2, rnn3, cnn, cnn2, gru, gru2, gru3")
     parser.add_argument("--weighted_loss", type=bool, default=False, help="Add True or False to use weighted loss")
-    parser.add_argument("--load_sst2_model_weights", type=bool, default=False, help="Add True or False to load model weight")
+    parser.add_argument("--load_sst2_model_weights", type=bool, default=True, help="Add True or False to load model weight")
+    parser.add_argument("--freeze_weights", type=bool, default=True, help="Freezing weights excepts classifier")
+
     # Parse arguments
     args = parser.parse_args()
 
@@ -139,7 +142,7 @@ if __name__ == "__main__" :
     epochs = args.epochs
 
     # Adding cuda device
-    gpus = check_gpu_availability(2, 1, [2, 3, 4, 5, 6, 7])
+    gpus = check_gpu_availability(2, 1, [3, 4, 5, 6, 7])
     print(f"occupied {gpus}")
     # os.environ['CUDA_VISIBLE_DEVICES'] = f'{",".join(map(str, gpus))}'
     device = torch.device(f"cuda:{gpus[0]}")
@@ -267,17 +270,64 @@ if __name__ == "__main__" :
                      pretrained_wv_type=args.pretrained_wv_type,
                     num_layers= 3
                      )
-
+    if args.model_type == "gru" :
+        # Defining Model
+        model = GRU(total_word=num_vocab,
+                     embed_size=embed_size,
+                     hidden_size=300,
+                     num_class=num_classes,
+                     vectorizer=vectorizer,
+                     word2idx=word2idx,
+                     idx2word=idx2word,
+                     bool_initialize_weights=args.bool_initialize_weights,
+                     pretrained_wv_type=args.pretrained_wv_type,
+                     num_layers=1
+                     )
+    if args.model_type == "gru2" :
+        # Defining Model
+        model = GRU(total_word=num_vocab,
+                     embed_size=embed_size,
+                     hidden_size=300,
+                     num_class=num_classes,
+                     vectorizer=vectorizer,
+                     word2idx=word2idx,
+                     idx2word=idx2word,
+                     bool_initialize_weights=args.bool_initialize_weights,
+                     pretrained_wv_type=args.pretrained_wv_type,
+                     num_layers=2
+                     )
+    if args.model_type == "gru3" :
+        # Defining Model
+        model = GRU(total_word=num_vocab,
+                     embed_size=embed_size,
+                     hidden_size=300,
+                     num_class=num_classes,
+                     vectorizer=vectorizer,
+                     word2idx=word2idx,
+                     idx2word=idx2word,
+                     bool_initialize_weights=args.bool_initialize_weights,
+                     pretrained_wv_type=args.pretrained_wv_type,
+                     num_layers=3
+                     )
     # Load model weights
     if args.load_sst2_model_weights :
-        model_weights_dict = {
-            "lstm" : "/data/home/karmpatel/karm_8T/naman/demo/DLNLP_Ass1_Data/model_ckpts/model_lstm_dataset_3_bs_32_lr_0.0001_embed_300/31.pt",
-            "rnn" : "/data/home/karmpatel/karm_8T/naman/demo/DLNLP_Ass1_Data/model_ckpts/model_rnn_dataset_3_bs_32_lr_0.0001_embed_300/26.pt",
-            "cnn" : "/data/home/karmpatel/karm_8T/naman/demo/DLNLP_Ass1_Data/model_ckpts/model_cnn_dataset_3_bs_32_lr_0.0001_embed_300/47.pt"
-        }
 
-        data_dict = model_weights_dict[args.model_type]
+        model_weights_dict = {
+            'cnn2': ['/data/home/karmpatel/karm_8T/naman/demo/DLNLP_Ass1_Data/model_ckpts/model_cnn2_dataset_3_bs_64_lr_0.0005_embed_300_classes_2_f1_weigh/18.pt'],
+            'lstm': ['/data/home/karmpatel/karm_8T/naman/demo/DLNLP_Ass1_Data/model_ckpts/model_lstm_dataset_3_bs_64_lr_0.0005_embed_300_classes_2_f1_weigh/19.pt'],
+            'gru3': ['/data/home/karmpatel/karm_8T/naman/demo/DLNLP_Ass1_Data/model_ckpts/model_gru3_dataset_3_bs_32_lr_0.0005_embed_300_classes_2_f1_weigh/47.pt'],
+            'lstm3': ['/data/home/karmpatel/karm_8T/naman/demo/DLNLP_Ass1_Data/model_ckpts/model_lstm3_dataset_3_bs_64_lr_0.0005_embed_300_classes_2_f1_weigh/36.pt'],
+            'lstm2': ['/data/home/karmpatel/karm_8T/naman/demo/DLNLP_Ass1_Data/model_ckpts/model_lstm2_dataset_3_bs_32_lr_0.001_embed_300_classes_2_f1_weigh/16.pt'],
+            'cnn': ['/data/home/karmpatel/karm_8T/naman/demo/DLNLP_Ass1_Data/model_ckpts/model_cnn_dataset_3_bs_64_lr_0.001_embed_300_classes_2_f1_weigh/29.pt']}
+
+        model_weights = model_weights_dict[args.model_type][0]
+        data_dict = torch.load(model_weights)
         model_weights = data_dict['model_weights']
+        model.load_weights_except_classifier(model_weights)
+
+
+    if args.freeze_weights :
+        model.freeze_weights()
 
 
     model.to(device)
@@ -303,10 +353,15 @@ if __name__ == "__main__" :
     if args.weighted_loss :
         exp_name += "_weigh_loss"
     exp_name += "_f1_weigh"
+    if args.load_sst2_model_weights :
+        exp_name += "_load_sst2"
+    if args.freeze_weights :
+        exp_name += "_freeze_rec"
+
     print(f"Exp name : {exp_name}")
 
     # Initialize TensorBoard writer
-    writer = SummaryWriter(f'runs/{exp_name}')
+    writer = SummaryWriter(f'runs/{args.dataset_type}/{exp_name}')
 
     # Stopping Criteria
     # Parameters for early stopping

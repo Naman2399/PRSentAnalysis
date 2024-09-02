@@ -1,9 +1,10 @@
+import gensim.downloader as api
+import numpy as np
 import torch
 import torch.nn as nn
-import numpy as np
-import gensim.downloader as api
 from gensim.models import KeyedVectors
-import torch.nn.functional as F
+
+
 class CNN2(torch.nn.Module):
 
     def __init__(self, total_word, num_class, vectorizer, word2idx, idx2word,
@@ -58,6 +59,81 @@ class CNN2(torch.nn.Module):
         return x
 
     # Your existing methods...
+
+    def initialize_embedding_matrix(self):
+
+        mask = np.ones((self.total_word, self.embed_size))
+        embedding_matrix_weights = np.zeros((self.total_word, self.embed_size))
+
+        if self.pretrained_wv_type == "word2vec" :
+            # Word2Vec embeddings
+            word2vec_model = api.load('word2vec-google-news-300')
+
+            for i in range(self.total_word) :
+                if i in self.idx2word.keys() :
+                    try :
+                        vector = word2vec_model[self.idx2word[i]]
+                        embedding_matrix_weights[i] = vector
+                        mask[i, :] = 0
+                    except :
+                        continue
+
+        elif self.pretrained_wv_type == "glove" :
+            glove_file_path = "/mnt/hdd/karmpatel/naman/demo/glove/glove.42B.300d.txt"
+            glove_model = KeyedVectors.load_word2vec_format(glove_file_path, no_header=True, binary=False)
+
+            for i in range(self.total_word) :
+                if i in self.idx2word.keys() :
+                    word = self.idx2word[i]
+                    vector = glove_model.get_vector(word) if word in glove_model else None
+                    if vector is not None:
+                        embedding_matrix_weights[i] = vector
+                        mask[i, :] = 0
+                    else :
+                        continue
+
+        embedding_matrix_weights = torch.tensor(embedding_matrix_weights, dtype=torch.float32)
+        mask = torch.tensor(mask, dtype=torch.float32)
+
+        updated_weights = self.embed.weight * mask + embedding_matrix_weights
+        self.embed.from_pretrained(updated_weights)
+        return
+
+    def initialize_weights(self):
+
+        for layer in self.modules():
+            if isinstance(layer, nn.Linear):
+                # Initialize weights with Xavier uniform distribution
+                nn.init.xavier_uniform_(layer.weight)
+                # Initialize biases to zero
+                nn.init.zeros_(layer.bias)
+
+    def load_weights_except_classifier(self, checkpoint):
+        """
+        Loads the model weights from a checkpoint file except for the classifier layers.
+
+        Args:
+            checkpoint_path (str): Path to the checkpoint file containing the saved weights.
+        """
+
+        # Get the current state_dict of the model
+        model_dict = self.state_dict()
+
+        # Filter out classifier weights from the checkpoint
+        pretrained_dict = {k: v for k, v in checkpoint.items() if "classifier" not in k and "embed" not in k}
+
+        # Update the current state_dict with pretrained_dict, excluding classifier
+        model_dict.update(pretrained_dict)
+
+        # Load the updated state_dict back into the model
+        self.load_state_dict(model_dict)
+
+        print("Loaded pretrained weights, except classifier.")
+
+    def freeze_weights(self):
+        self.conv_block_1.requires_grad_(False)
+        self.pool.requires_grad_(False)
+
 
 # Testing the modified model
 if __name__ == "__main__" :

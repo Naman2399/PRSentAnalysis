@@ -1,7 +1,7 @@
 import pandas as pd
 
 from dataset.dataset_utils import get_data_loaders, get_mapping, preprocessing, get_eval_data_loaders, \
-    get_train_data_loaders
+    get_train_data_loaders, get_eval_data_loaders_only_text
 
 
 def read_dataset_n_modify_column_name(file_name) :
@@ -14,6 +14,19 @@ def read_dataset_n_modify_column_name(file_name) :
     # "Rating" and "Review"
     print("Dataframe information")
     df = df.rename(columns={'overall': 'Rating', 'reviewText': 'Review'})
+    print(df.info())
+    return df
+
+def read_dataset_n_modify_column_name_only_text(file_name) :
+
+    df = pd.read_csv(file_name)
+    # Column names
+    column_names = df.columns
+    print(f"Column names : {column_names}")
+    # If column names are different let them convert to
+    # "Rating" and "Review"
+    print("Dataframe information")
+    df = df.rename(columns={'reviewText': 'Review'})
     print(df.info())
     return df
 
@@ -74,7 +87,7 @@ def load_dataset(output_seq_len, batch_size):
     return train_loader, val_loader, test_loader, num_classes, rating_counts, vectorizer, word2idx, idx2word
 
 
-def load_test_val_dataset(file_path, num_classes, vectorizer, batch_size) :
+def load_test_val_dataset(file_path, num_classes, vectorizer, batch_size, original_col_name = None, include_original_text = False ) :
 
     df = read_dataset_n_modify_column_name(file_path)
 
@@ -85,7 +98,23 @@ def load_test_val_dataset(file_path, num_classes, vectorizer, batch_size) :
         file_name="dataset_shivde_postprocess_eval.csv"
     )
 
-    data_loader = get_eval_data_loaders(file_path, num_classes, vectorizer, batch_size=batch_size)
+    data_loader = get_eval_data_loaders(file_path, num_classes, vectorizer, batch_size=batch_size, original_col_name= original_col_name, include_original_text= include_original_text )
+
+    return data_loader
+
+def load_eval_dataset_only_text(file_path, num_classes, vectorizer, batch_size, original_col_name = None, include_original_text = False ) :
+
+    df = read_dataset_n_modify_column_name_only_text(file_path)
+
+    # Preprocessing
+    file_path = preprocessing(
+        df=df,
+        dir_path="data",
+        file_name="dataset_shivde_postprocess_eval_only_text.csv",
+        visulaize= False
+    )
+
+    data_loader = get_eval_data_loaders_only_text(file_path, num_classes, vectorizer, batch_size=batch_size, original_col_name= original_col_name, include_original_text= include_original_text )
 
     return data_loader
 

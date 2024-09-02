@@ -75,9 +75,9 @@ def load_dataset(output_seq_len, batch_size) :
     val_loader = get_eval_data_loaders(file_path['val'], num_classes, vectorizer, batch_size= batch_size, x_col= x_col, y_col= y_col)
     test_loader = get_eval_data_loaders(file_path['test'], num_classes, vectorizer, batch_size= batch_size, x_col= x_col, y_col= y_col)
 
-    # word2idx, idx2word = get_mapping(vectorizer)
-    word2idx = None
-    idx2word = None
+    word2idx, idx2word = get_mapping(vectorizer)
+    # word2idx = None
+    # idx2word = None
 
     return train_loader, val_loader, test_loader, num_classes, rating_counts, vectorizer, word2idx, idx2word
 

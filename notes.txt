@@ -1,21 +1,2 @@
 tensorboard --logdir=./ --host=10.192.12.61 --port=6041
 
-Best model right now -
-1. model_cnn_dataset_2_bs_512_lr_0.0001_embed_300_classes_5_f1_weigh  Epochs 100  ///// 23 F1 - 71.95
-2. model_cnn_dataset_2_bs_1024_lr_0.0001_embed_300_classes_5_f1_weigh
-3. model_cnn_dataset_2_bs_128_lr_0.0001_embed_300_classes_5_f1_weigh
-4. model_cnn_dataset_2_bs_64_lr_0.001_embed_300_classes_5_f1_weigh Epochs 100 //////// 52 F1 - 71.66
-
-
-1. model_cnn_dataset_2_bs_512_lr_0.0001_embed_300_classes_5_f1_weigh  Epochs 200  ///// 146  F1 - 72.86
-2.
-
-
-# Making list of final checkpoints
-cp -r /path/to/source/folder /path/to/destination/
-
-cp -r model_cnn2_dataset_2_bs_512_lr_0.0001_embed_300_classes_5_f1_weigh /mnt/hdd/karmpatel/naman/demo/DLNLP_Ass1_Data/model_ckpts_final
-
-
-final ckpts name -
-1.

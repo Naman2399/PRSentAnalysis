@@ -171,6 +171,32 @@ class CNN(torch.nn.Module):
         if freeze_classifier:
             self.classifier.requires_grad_(False)
 
+    def load_weights_except_classifier(self, checkpoint):
+        """
+        Loads the model weights from a checkpoint file except for the classifier layers.
+
+        Args:
+            checkpoint_path (str): Path to the checkpoint file containing the saved weights.
+        """
+
+        # Get the current state_dict of the model
+        model_dict = self.state_dict()
+
+        # Filter out classifier weights from the checkpoint
+        pretrained_dict = {k: v for k, v in checkpoint.items() if "classifier" not in k and "embed" not in k}
+
+        # Update the current state_dict with pretrained_dict, excluding classifier
+        model_dict.update(pretrained_dict)
+
+        # Load the updated state_dict back into the model
+        self.load_state_dict(model_dict)
+
+        print("Loaded pretrained weights, except classifier.")
+
+    def freeze_weights(self):
+        self.conv_block_1.requires_grad_(False)
+        self.pool.requires_grad_(False)
+
 
 if __name__ == "__main__" :
 

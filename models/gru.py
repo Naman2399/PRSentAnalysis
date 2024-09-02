@@ -5,10 +5,10 @@ import gensim.downloader as api
 from gensim.models import KeyedVectors
 
 
-class RNN(torch.nn.Module):
+class GRU(torch.nn.Module):
 
     def __init__(self, total_word, num_class, vectorizer, word2idx, idx2word,
-                 embed_size = 300, hidden_size = 300,  padding_index=0, num_layers= 5, drouput_out = 0.2,
+                 embed_size = 300, hidden_size = 300,  padding_index=0, num_layers= 2, drouput_out = 0.2,
                  bool_initialize_weights = True, pretrained_wv_type = "word2vec"):
         '''
 
@@ -17,7 +17,6 @@ class RNN(torch.nn.Module):
         :param vectorizer:
         :param word2idx:
         :param idx2word:
-        :param device:
         :param embed_size:
         :param hidden_size:
         :param padding_index:
@@ -43,7 +42,7 @@ class RNN(torch.nn.Module):
                                         padding_idx=padding_index)
 
 
-        self.rnn = torch.nn.RNN(input_size=self.embed_size,
+        self.gru = torch.nn.GRU(input_size=self.embed_size,
                                   hidden_size=self.hidden_size,
                                   num_layers= num_layers,
                                   bidirectional=True,
@@ -66,10 +65,9 @@ class RNN(torch.nn.Module):
             self.initialize_weights()
             self.initialize_embedding_matrix()
 
-
     def forward(self, X):
         out = self.embed(X)
-        out, _ = self.rnn(out)
+        out, _ = self.gru(out)
         out = self.classifier(out[:, -1, :])
         return out
 
@@ -124,7 +122,6 @@ class RNN(torch.nn.Module):
                 # Initialize biases to zero
                 nn.init.zeros_(layer.bias)
 
-
     def load_sst2_weights(self, model_weights):
         """
            This function loads weights into the model for all layers except for the classifier.
@@ -146,7 +143,7 @@ class RNN(torch.nn.Module):
 
     def freeze_grads(self, freeze_classifier = False):
         self.embed.requires_grad_(False)
-        self.rnn.requires_grad_(False)
+        self.gru.requires_grad_(False)
 
         if freeze_classifier :
             self.classifier.requires_grad_(False)
@@ -174,4 +171,4 @@ class RNN(torch.nn.Module):
         print("Loaded pretrained weights, except classifier.")
 
     def freeze_weights(self):
-        self.rnn.requires_grad_(False)
+        self.gru.requires_grad_(False)

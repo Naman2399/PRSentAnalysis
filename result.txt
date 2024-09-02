@@ -1,42 +1,27 @@
------------Exp Name : model_lstm_dataset_2_bs_64_embed_300  
-Accuracy	0.7369077306733167
-AUC	0.5188899294314085
-Balance Accuracy	0.20113659718802546
-Test Loss	0.030498572269877292
-Test F1	0.6957315394475673
+-------------- Dataset SST2 -----------------
+---------- CKPTS ---------
+
+{'cnn2': ['/data/home/karmpatel/karm_8T/naman/demo/DLNLP_Ass1_Data/model_ckpts/model_cnn2_dataset_3_bs_512_lr_0.0001_embed_300_classes_2_f1_weigh/190.pt', '/data/home/karmpatel/karm_8T/naman/demo/DLNLP_Ass1_Data/model_ckpts/model_cnn2_dataset_3_bs_64_lr_0.0005_embed_300_classes_2_f1_weigh/18.pt', '/data/home/karmpatel/karm_8T/naman/demo/DLNLP_Ass1_Data/model_ckpts/model_cnn2_dataset_3_bs_32_lr_0.0005_embed_300_classes_2_f1_weigh/16.pt', '/data/home/karmpatel/karm_8T/naman/demo/DLNLP_Ass1_Data/model_ckpts/model_cnn2_dataset_3_bs_1024_lr_0.001_embed_300_classes_2_f1_weigh/27.pt', '/data/home/karmpatel/karm_8T/naman/demo/DLNLP_Ass1_Data/model_ckpts/model_cnn2_dataset_3_bs_512_lr_0.001_embed_300_classes_2_f1_weigh/53.pt']}
+
+
+-------------- Dataset Review ---------------
+----------- CKPTS -----------
+-------- Without laoding weights from SST2 --------
+{'cnn2': ['/data/home/karmpatel/karm_8T/naman/demo/DLNLP_Ass1_Data/model_ckpts/model_cnn2_dataset_2_bs_512_lr_0.0005_embed_300_classes_5_f1_weigh/19.pt', '/data/home/karmpatel/karm_8T/naman/demo/DLNLP_Ass1_Data/model_ckpts/model_cnn2_dataset_2_bs_128_lr_0.0001_embed_300_classes_5_f1_weigh/28.pt', '/data/home/karmpatel/karm_8T/naman/demo/DLNLP_Ass1_Data/model_ckpts/model_cnn2_dataset_2_bs_512_lr_0.001_embed_300_classes_5_f1_weigh/5.pt', '/data/home/karmpatel/karm_8T/naman/demo/DLNLP_Ass1_Data/model_ckpts/model_cnn2_dataset_2_bs_128_lr_0.001_embed_300_classes_5_f1_weigh/2.pt', '/data/home/karmpatel/karm_8T/naman/demo/DLNLP_Ass1_Data/model_ckpts/model_cnn2_dataset_2_bs_128_lr_0.0005_embed_300_classes_5_f1_weigh/10.pt'], 'lstm2': ['/data/home/karmpatel/karm_8T/naman/demo/DLNLP_Ass1_Data/model_ckpts/model_lstm2_dataset_2_bs_32_lr_0.0001_embed_300_classes_5_f1_weigh/30.pt'], 'cnn': ['/data/home/karmpatel/karm_8T/naman/demo/DLNLP_Ass1_Data/model_ckpts/model_cnn_dataset_2_bs_128_lr_0.0005_embed_300_classes_5_f1_weigh/73.pt', '/data/home/karmpatel/karm_8T/naman/demo/DLNLP_Ass1_Data/model_ckpts/model_cnn_dataset_2_bs_64_lr_0.001_embed_300_classes_5_f1_weigh/62.pt'], 'rnn3': ['/data/home/karmpatel/karm_8T/naman/demo/DLNLP_Ass1_Data/model_ckpts/model_rnn3_dataset_2_bs_64_lr_0.001_embed_300_classes_5_f1_weigh/48.pt'], 'lstm': ['/data/home/karmpatel/karm_8T/naman/demo/DLNLP_Ass1_Data/model_ckpts/model_lstm_dataset_2_bs_128_lr_0.0001_embed_300_classes_5_f1_weigh/60.pt']}
+
+
+------------ CKTPS ------------------
+-----------Exp Name : model_cnn2_dataset_2_bs_512_embed_300
+Accuracy	0.7892768079800498
+AUC	0.6148806284032446
+Balance Accuracy	0.2343374361933725
+Test Loss	0.003354122216564759
+Test F1	0.7892768079800498
 --------------------------------------------------------------------------------------------------------------
------------Exp Name : model_lstm_dataset_2_bs_64_embed_300  
-Accuracy	0.7319201995012469
-AUC	0.6626025821070713
-Balance Accuracy	0.28856391873229786
-Test Loss	0.019414043188689653
-Test F1	0.7157790627693859
---------------------------------------------------------------------------------------------------------------
------------Exp Name : model_lstm_dataset_2_bs_64_embed_300  
-Accuracy	0.7231920199501247
-AUC	0.6215975171310977
-Balance Accuracy	0.29801002698415147
-Test Loss	0.02171083028774309
-Test F1	0.7166384663262495
---------------------------------------------------------------------------------------------------------------
------------Exp Name : model_lstm_dataset_2_bs_64_embed_300  
-Accuracy	0.7768079800498753
-AUC	0.6173414675043327
-Balance Accuracy	0.23446317163031347
-Test Loss	0.020271754770207585
-Test F1	0.719499612434021
---------------------------------------------------------------------------------------------------------------
------------Exp Name : model_lstm_dataset_2_bs_64_embed_300  
-Accuracy	0.7793017456359103
-AUC	0.5988240992843228
-Balance Accuracy	0.2386443670912981
-Test Loss	0.022001890767542203
-Test F1	0.7268884340060997
---------------------------------------------------------------------------------------------------------------
------------Exp Name : model_lstm_dataset_2_bs_64_embed_300  
-Accuracy	0.7755610972568578
-AUC	0.5990102845994428
-Balance Accuracy	0.24168200583822727
-Test Loss	0.021965250707326685
-Test F1	0.7288608300581491
+-----------Exp Name : model_cnn2_dataset_2_bs_512_embed_300  
+Accuracy	0.7892768079800498
+AUC	0.6148806284032446
+Balance Accuracy	0.2343374361933725
+Test Loss	0.003354122216564759
+Test F1	0.7892768079800498
 --------------------------------------------------------------------------------------------------------------
